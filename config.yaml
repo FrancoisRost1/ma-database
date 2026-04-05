@@ -440,7 +440,7 @@ snapshot:
   # Memo covers: active sectors, valuation shifts, sponsor vs strategic mix,
   # top sponsors, completion rate, concentration patterns
   compare_prior_period: true  # compare current filters vs same-length prior period
-  max_length_words: 400
+  max_length_words: 500  # increased from 400 to accommodate sample size citations and confidence qualifiers
 
 # -----------------------------------------------------------------------------
 # Validation rules

@@ -44,6 +44,7 @@ def generate_sponsor_profile(sponsor_name: str, filters: dict = None) -> dict:
 
     # Sponsor stats
     sponsor_ev = df["ev_to_ebitda"].dropna()
+    ev_ebitda_count = int(sponsor_ev.count())
     avg_ev = float(sponsor_ev.mean()) if not sponsor_ev.empty else np.nan
     avg_deal_size = float(df["deal_value_usd"].dropna().mean()) if not df["deal_value_usd"].dropna().empty else np.nan
 
@@ -61,8 +62,12 @@ def generate_sponsor_profile(sponsor_name: str, filters: dict = None) -> dict:
         deal_type_mix = {k: round(v / total * 100, 1) for k, v in type_counts.items()}
 
     # Valuation stance: premium buyer (>1x above market), value buyer (<-1x), market buyer
+    # Requires at least 3 deals with valid EV/EBITDA for a meaningful classification
     ev_premium = avg_ev - market_median_ev if not np.isnan(avg_ev) and not np.isnan(market_median_ev) else np.nan
-    if np.isnan(ev_premium):
+    MIN_SAMPLE = 3
+    if ev_ebitda_count < MIN_SAMPLE:
+        valuation_stance = "Insufficient valuation data"
+    elif np.isnan(ev_premium):
         valuation_stance = "Unknown"
     elif ev_premium > 1.0:
         valuation_stance = "Premium Buyer"
@@ -99,6 +104,7 @@ def generate_sponsor_profile(sponsor_name: str, filters: dict = None) -> dict:
     profile = {
         "sponsor_name": sponsor_name,
         "deal_count": len(df),
+        "ev_ebitda_count": ev_ebitda_count,
         "avg_ev_ebitda": round(avg_ev, 2) if not np.isnan(avg_ev) else None,
         "market_median_ev_ebitda": round(market_median_ev, 2) if not np.isnan(market_median_ev) else None,
         "ev_premium_vs_market": round(ev_premium, 2) if not np.isnan(ev_premium) else None,
@@ -139,6 +145,7 @@ def generate_all_profiles(filters: dict = None, min_deals: int = 3) -> pd.DataFr
         rows.append({
             "sponsor_name": profile["sponsor_name"],
             "deal_count": profile["deal_count"],
+            "ev_ebitda_count": profile.get("ev_ebitda_count", 0),
             "valuation_stance": profile["valuation_stance"],
             "avg_ev_ebitda": profile.get("avg_ev_ebitda"),
             "ev_premium_vs_market": profile.get("ev_premium_vs_market"),
@@ -182,22 +189,31 @@ def sponsor_profile_narrative(
     regimes = profile.get("activity_regimes", [])
     deal_types = profile.get("deal_type_mix", {})
 
+    ev_ebitda_count = profile.get("ev_ebitda_count", 0)
+
     # Valuation stance sentence
-    if stance == "Premium Buyer" and premium is not None:
+    if stance == "Insufficient valuation data":
+        val_sentence = (
+            f"**{name}** has {deal_count} deal(s) in the dataset. "
+            f"Insufficient valuation data for classification "
+            f"({ev_ebitda_count} deal(s) with valid EV/EBITDA, minimum 3 required)."
+        )
+    elif stance == "Premium Buyer" and premium is not None:
         val_sentence = (
             f"**{name}** is a **premium buyer**, paying an average EV/EBITDA of "
-            f"**{ev:.1f}x** — {premium:+.1f}x above market median."
+            f"**{ev:.1f}x** — {premium:+.1f}x above market median "
+            f"(based on {ev_ebitda_count} deals with valuation data)."
         )
     elif stance == "Value Buyer" and premium is not None:
         val_sentence = (
             f"**{name}** is a **value-oriented buyer**, paying an average EV/EBITDA of "
-            f"**{ev:.1f}x** — {premium:+.1f}x versus market median, "
-            f"indicating discipline on entry price."
+            f"**{ev:.1f}x** — {premium:+.1f}x versus market median "
+            f"(based on {ev_ebitda_count} deals with valuation data)."
         )
     elif ev:
         val_sentence = (
             f"**{name}** pays broadly in line with market, at an average EV/EBITDA of "
-            f"**{ev:.1f}x**."
+            f"**{ev:.1f}x** (based on {ev_ebitda_count} deals with valuation data)."
         )
     else:
         val_sentence = f"**{name}** has {deal_count} deals in the dataset."

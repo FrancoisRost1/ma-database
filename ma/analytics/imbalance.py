@@ -17,6 +17,26 @@ import numpy as np
 from ma.db import queries
 
 
+MIN_SAMPLE = 3  # Minimum deal count for a reliable signal
+
+
+def signal_confidence(n: int) -> str:
+    """
+    Return confidence qualifier based on deal count backing a signal.
+    n >= 10 → high confidence
+    n  5-9  → moderate confidence
+    n  3-4  → low confidence
+    n < 3   → insufficient data
+    """
+    if n >= 10:
+        return "high confidence"
+    if n >= 5:
+        return "moderate confidence"
+    if n >= MIN_SAMPLE:
+        return "low confidence"
+    return "insufficient data"
+
+
 def detect_sector_imbalances(filters: dict = None) -> pd.DataFrame:
     """
     Compute activity momentum and valuation momentum per sector, then classify
@@ -119,6 +139,8 @@ def detect_sector_imbalances(filters: dict = None) -> pd.DataFrame:
             return "Narrowing"
         return "Cooling"
 
+    merged["total_deal_count"] = merged["recent_deal_count"] + merged["prior_deal_count"]
+
     merged["signal"] = merged.apply(
         lambda r: _classify_signal(r["activity_momentum_pct"], r["valuation_momentum_pct"]),
         axis=1,
@@ -164,7 +186,8 @@ def detect_sector_imbalances(filters: dict = None) -> pd.DataFrame:
     # Clean up output columns
     output = merged[[
         "sector_name", "activity_momentum_pct", "valuation_momentum_pct",
-        "recent_deal_count", "prior_deal_count", "recent_ev_median", "prior_ev_median",
+        "recent_deal_count", "prior_deal_count", "total_deal_count",
+        "recent_ev_median", "prior_ev_median",
         "signal", "interpretation",
     ]].copy()
 

@@ -57,6 +57,9 @@ st.markdown("""
     }
     h1, h2, h3 { color: #E8E8E8; }
     .stSelectbox, .stMultiSelect { color: #E8E8E8; }
+    /* Force transparent backgrounds on all Plotly charts */
+    .js-plotly-plot .plotly .main-svg { background: transparent !important; }
+    .js-plotly-plot .plotly .bg { fill: transparent !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -64,6 +67,54 @@ CONFIG = load_config("config.yaml")
 TEMPLATE = CONFIG["dashboard"]["plotly_template"]
 COLORS = CONFIG["dashboard"]["chart_color_palette"]
 H = CONFIG["dashboard"]["chart_height"]
+
+# ---------------------------------------------------------------------------
+# Semantic color system — consistent across all signals, regimes, quality tiers
+# ---------------------------------------------------------------------------
+MIN_SAMPLE = 3  # Minimum deal count for a credible signal/classification
+DARK_BG = dict(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+
+SIGNAL_COLORS = {
+    "Overheating":       "#FF6B6B",
+    "Narrowing":         "#F0B27A",
+    "Healthy Growth":    "#00D4AA",
+    "Cooling":           "#45B7D1",
+    "Insufficient Data": "#888888",
+}
+REGIME_COLORS = {
+    "Peak / Late-Cycle":      "#FF6B6B",
+    "Recovery / Opportunity": "#00D4AA",
+    "Selective / Cautious":   "#F0B27A",
+    "Trough / Distressed":    "#45B7D1",
+    "Indeterminate":          "#888888",
+}
+COMPLETENESS_COLORS = {"High": "#00D4AA", "Medium": "#F7DC6F", "Low": "#FF6B6B"}
+CONFIDENCE_COLORS = {
+    "high confidence":    "#00D4AA",
+    "moderate confidence":"#F7DC6F",
+    "low confidence":     "#F0B27A",
+    "insufficient data":  "#888888",
+}
+STANCE_COLORS = {
+    "Premium Buyer":               "#FF6B6B",
+    "Value Buyer":                 "#00D4AA",
+    "Market Buyer":                "#888888",
+    "Unknown":                     "#888888",
+    "Insufficient valuation data": "#888888",
+}
+
+
+def confidence_badge(n: int) -> str:
+    """Return a colored inline HTML span showing sample size and confidence level."""
+    if n >= 10:
+        level, color = "high confidence", CONFIDENCE_COLORS["high confidence"]
+    elif n >= 5:
+        level, color = "moderate confidence", CONFIDENCE_COLORS["moderate confidence"]
+    elif n >= MIN_SAMPLE:
+        level, color = "low confidence", CONFIDENCE_COLORS["low confidence"]
+    else:
+        level, color = "insufficient data", CONFIDENCE_COLORS["insufficient data"]
+    return f'<span style="color:{color}; font-size:11px; font-weight:600;">n={n}, {level}</span>'
 
 
 # ---------------------------------------------------------------------------
@@ -282,7 +333,7 @@ with tabs[0]:
                 fig = px.line(cnt_df, x="year", y="deal_count",
                               title="Deal Count Over Time",
                               template=TEMPLATE, color_discrete_sequence=COLORS)
-                fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deals")
+                fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deals", **DARK_BG)
                 st.plotly_chart(fig, use_container_width=True)
 
         with col2:
@@ -292,7 +343,7 @@ with tabs[0]:
                 fig = px.pie(dt_df, names="deal_type", values="deal_count",
                              title="Deal Type Distribution",
                              template=TEMPLATE, color_discrete_sequence=COLORS, hole=0.4)
-                fig.update_layout(height=H)
+                fig.update_layout(height=H, **DARK_BG)
                 st.plotly_chart(fig, use_container_width=True)
 
         col3, col4 = st.columns(2)
@@ -304,7 +355,7 @@ with tabs[0]:
                 fig = px.bar(sec_df.sort_values("deal_count"), x="deal_count", y="sector_name",
                              orientation="h", title="Top 10 Sectors by Deal Count",
                              template=TEMPLATE, color_discrete_sequence=COLORS)
-                fig.update_layout(height=H, xaxis_title="Deals", yaxis_title="")
+                fig.update_layout(height=H, xaxis_title="Deals", yaxis_title="", **DARK_BG)
                 st.plotly_chart(fig, use_container_width=True)
 
         with col4:
@@ -315,7 +366,7 @@ with tabs[0]:
                              orientation="h", title="Top 10 Acquirers by Deal Count",
                              color="acquirer_type",
                              template=TEMPLATE, color_discrete_sequence=COLORS)
-                fig.update_layout(height=H, xaxis_title="Deals", yaxis_title="")
+                fig.update_layout(height=H, xaxis_title="Deals", yaxis_title="", **DARK_BG)
                 st.plotly_chart(fig, use_container_width=True)
 
         # Market Regime Section
@@ -324,15 +375,7 @@ with tabs[0]:
         current_regime = regime_mod.get_current_regime(filters)
 
         if not regime_df.empty:
-            # Color mapping for regime labels
-            _REGIME_COLORS = {
-                "Peak / Late-Cycle": "#FF6B6B",
-                "Recovery / Opportunity": "#00D4AA",
-                "Selective / Cautious": "#F7DC6F",
-                "Trough / Distressed": "#BB8FCE",
-                "Indeterminate": "#888888",
-            }
-            regime_df["color"] = regime_df["regime_label"].map(_REGIME_COLORS).fillna("#888888")
+            regime_df["color"] = regime_df["regime_label"].map(REGIME_COLORS).fillna("#888888")
 
             col_regime1, col_regime2 = st.columns([2, 1])
             with col_regime1:
@@ -340,12 +383,12 @@ with tabs[0]:
                 fig_regime = px.bar(
                     regime_df, x="year", y="deal_count",
                     color="regime_label",
-                    color_discrete_map=_REGIME_COLORS,
+                    color_discrete_map=REGIME_COLORS,
                     title="Market Regime Timeline (Annual Deal Activity, colored by Regime)",
                     template=TEMPLATE,
                     labels={"deal_count": "Deal Count", "year": "Year", "regime_label": "Regime"},
                 )
-                fig_regime.update_layout(height=380, legend_title="Regime")
+                fig_regime.update_layout(height=380, legend_title="Regime", **DARK_BG)
                 st.plotly_chart(fig_regime, use_container_width=True)
 
             with col_regime2:
@@ -353,7 +396,7 @@ with tabs[0]:
                     label = current_regime.get("regime_label", "N/A")
                     year = current_regime.get("year", "N/A")
                     explanation = current_regime.get("explanation", "")
-                    color = _REGIME_COLORS.get(label, "#888888")
+                    color = REGIME_COLORS.get(label, "#888888")
                     st.markdown(f"""
                     <div style="background:#1A1A2E; border-left: 4px solid {color};
                          padding:16px; border-radius:4px; margin-top:8px;">
@@ -395,27 +438,48 @@ with tabs[1]:
     st.markdown("### Valuation Analysis")
     st.caption("Sector multiples, premium dynamics, and valuation regime shifts.")
 
-    # EV/EBITDA box plot
+    # EV/EBITDA box plot — filter sectors with < MIN_SAMPLE valid observations
     ev_df = valuation.ev_ebitda_by_sector(filters)
     if not ev_df.empty:
-        fig = px.box(ev_df, x="sector_name", y="ev_to_ebitda",
-                     title="EV/EBITDA Distribution by Sector",
-                     template=TEMPLATE, color_discrete_sequence=COLORS)
-        fig.update_layout(height=H, xaxis_title="Sector", yaxis_title="EV/EBITDA (x)",
-                          xaxis_tickangle=-30)
-        st.plotly_chart(fig, use_container_width=True)
+        _ev_counts = ev_df.groupby("sector_name")["ev_to_ebitda"].count()
+        _ev_included = _ev_counts[_ev_counts >= MIN_SAMPLE].index.tolist()
+        _ev_excluded = _ev_counts[_ev_counts < MIN_SAMPLE].index.tolist()
+        _ev_caution = _ev_counts[(_ev_counts >= MIN_SAMPLE) & (_ev_counts <= 5)].index.tolist()
+        ev_df_f = ev_df[ev_df["sector_name"].isin(_ev_included)]
+        if not ev_df_f.empty:
+            fig = px.box(ev_df_f, x="sector_name", y="ev_to_ebitda",
+                         title="EV/EBITDA Distribution by Sector",
+                         template=TEMPLATE, color_discrete_sequence=COLORS)
+            fig.update_layout(height=H, xaxis_title="Sector", yaxis_title="EV/EBITDA (x)",
+                              xaxis_tickangle=-30, **DARK_BG)
+            st.plotly_chart(fig, use_container_width=True)
+            captions = []
+            if _ev_excluded:
+                captions.append(f"Excluded (< {MIN_SAMPLE} obs): {', '.join(_ev_excluded)}.")
+            if _ev_caution:
+                captions.append(f"Interpret with caution (3–5 obs): {', '.join(_ev_caution)}.")
+            if captions:
+                st.caption(" ".join(captions))
 
     col1, col2 = st.columns(2)
 
     with col1:
-        # EV/Revenue box plot
+        # EV/Revenue box plot — same MIN_SAMPLE filter
         rev_df = valuation.ev_revenue_by_sector(filters)
         if not rev_df.empty:
-            fig = px.box(rev_df, x="sector_name", y="ev_to_revenue",
-                         title="EV/Revenue Distribution by Sector",
-                         template=TEMPLATE, color_discrete_sequence=COLORS)
-            fig.update_layout(height=H, xaxis_tickangle=-30, xaxis_title="Sector", yaxis_title="EV/Revenue (x)")
-            st.plotly_chart(fig, use_container_width=True)
+            _rev_counts = rev_df.groupby("sector_name")["ev_to_revenue"].count()
+            _rev_included = _rev_counts[_rev_counts >= MIN_SAMPLE].index.tolist()
+            _rev_excluded = _rev_counts[_rev_counts < MIN_SAMPLE].index.tolist()
+            rev_df_f = rev_df[rev_df["sector_name"].isin(_rev_included)]
+            if not rev_df_f.empty:
+                fig = px.box(rev_df_f, x="sector_name", y="ev_to_revenue",
+                             title="EV/Revenue Distribution by Sector",
+                             template=TEMPLATE, color_discrete_sequence=COLORS)
+                fig.update_layout(height=H, xaxis_tickangle=-30, xaxis_title="Sector",
+                                  yaxis_title="EV/Revenue (x)", **DARK_BG)
+                st.plotly_chart(fig, use_container_width=True)
+                if _rev_excluded:
+                    st.caption(f"Excluded (< {MIN_SAMPLE} obs): {', '.join(_rev_excluded)}.")
 
     with col2:
         # Premium paid histogram
@@ -425,7 +489,8 @@ with tabs[1]:
                                title="Premium Paid % Distribution (Public Targets)",
                                template=TEMPLATE, color_discrete_sequence=COLORS,
                                nbins=30)
-            fig.update_layout(height=H, xaxis_title="Premium Paid (%)", yaxis_title="Count")
+            fig.update_layout(height=H, xaxis_title="Premium Paid (%)", yaxis_title="Count",
+                              **DARK_BG)
             st.plotly_chart(fig, use_container_width=True)
 
     # Median EV/EBITDA over time (valuation regime)
@@ -434,7 +499,8 @@ with tabs[1]:
         fig = px.line(regime_df, x="year", y="median_ev_to_ebitda", color="sector_name",
                       title="Median EV/EBITDA Over Time by Sector (Valuation Regime Shifts)",
                       template=TEMPLATE, color_discrete_sequence=COLORS)
-        fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Median EV/EBITDA (x)")
+        fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Median EV/EBITDA (x)",
+                          **DARK_BG)
         st.plotly_chart(fig, use_container_width=True)
 
     # Sponsor vs strategic multiples
@@ -444,7 +510,8 @@ with tabs[1]:
                      barmode="group",
                      title="Sponsor vs. Strategic: Entry EV/EBITDA Comparison",
                      template=TEMPLATE, color_discrete_sequence=COLORS)
-        fig.update_layout(height=400, xaxis_title="Acquirer Type", yaxis_title="EV/EBITDA (x)")
+        fig.update_layout(height=400, xaxis_title="Acquirer Type", yaxis_title="EV/EBITDA (x)",
+                          **DARK_BG)
         st.plotly_chart(fig, use_container_width=True)
 
     # Valuation stats table
@@ -463,6 +530,7 @@ with tabs[1]:
     rel_df = rel_val_mod.sector_relative_valuation(filters)
 
     if not rel_df.empty:
+        # rel_df is already filtered to >= MIN_SAMPLE in relative_valuation.py
         col_rel1, col_rel2 = st.columns(2)
 
         with col_rel1:
@@ -481,8 +549,9 @@ with tabs[1]:
             )
             fig_rel.update_traces(texttemplate="%{text:+.1f}x", textposition="outside")
             fig_rel.update_layout(height=H, coloraxis_showscale=False,
-                                  xaxis_title="vs Market Median (x)")
+                                  xaxis_title="vs Market Median (x)", **DARK_BG)
             st.plotly_chart(fig_rel, use_container_width=True)
+            st.caption(f"Only sectors with ≥ {MIN_SAMPLE} valid EV/EBITDA observations shown.")
 
         with col_rel2:
             # Historical percentile bar
@@ -502,8 +571,9 @@ with tabs[1]:
                 )
                 fig_pct.update_traces(texttemplate="%{text:.0f}th", textposition="outside")
                 fig_pct.update_layout(height=H, coloraxis_showscale=False,
-                                      xaxis_title="Historical Percentile (0–100th)")
+                                      xaxis_title="Historical Percentile (0–100th)", **DARK_BG)
                 st.plotly_chart(fig_pct, use_container_width=True)
+                st.caption(f"Only sectors with ≥ {MIN_SAMPLE} valid observations shown.")
 
         # Sponsor vs strategic spread by sector
         sv_df = rel_val_mod.sponsor_vs_strategic_premium(filters)
@@ -513,7 +583,7 @@ with tabs[1]:
                 x="spread", y="sector_name",
                 orientation="h",
                 color="spread",
-                color_continuous_scale=["#BB8FCE", "#444", "#00D4AA"],
+                color_continuous_scale=["#45B7D1", "#444", "#00D4AA"],
                 color_continuous_midpoint=0,
                 title="Sponsor vs. Strategic Entry Premium by Sector (Spread in EV/EBITDA x)",
                 template=TEMPLATE,
@@ -521,8 +591,9 @@ with tabs[1]:
                 text="spread",
             )
             fig_sv.update_traces(texttemplate="%{text:+.1f}x", textposition="outside")
-            fig_sv.update_layout(height=H, coloraxis_showscale=False)
+            fig_sv.update_layout(height=H, coloraxis_showscale=False, **DARK_BG)
             st.plotly_chart(fig_sv, use_container_width=True)
+            st.caption(f"Only sectors where both sponsor and strategic have ≥ {MIN_SAMPLE} deals with valid EV/EBITDA.")
 
         # Relative valuation narrative
         narrative = rel_val_mod.relative_valuation_narrative(filters)
@@ -558,7 +629,7 @@ with tabs[2]:
             fig = px.area(cnt_df, x="year", y="deal_count",
                           title="Annual Deal Count",
                           template=TEMPLATE, color_discrete_sequence=COLORS)
-            fig.update_layout(height=H)
+            fig.update_layout(height=H, **DARK_BG)
             st.plotly_chart(fig, use_container_width=True)
 
     with col2:
@@ -568,7 +639,7 @@ with tabs[2]:
             fig = px.area(val_df, x="year", y="total_value_B",
                           title="Annual Deal Value ($B)",
                           template=TEMPLATE, color_discrete_sequence=[COLORS[1]])
-            fig.update_layout(height=H, yaxis_title="Deal Value ($B)")
+            fig.update_layout(height=H, yaxis_title="Deal Value ($B)", **DARK_BG)
             st.plotly_chart(fig, use_container_width=True)
 
     # Sector heatmap
@@ -586,7 +657,7 @@ with tabs[2]:
             ))
             fig.update_layout(title="Sector Activity Heatmap (Deal Count by Year)",
                               template=TEMPLATE, height=H + 100,
-                              xaxis_title="Year", yaxis_title="Sector")
+                              xaxis_title="Year", yaxis_title="Sector", **DARK_BG)
             st.plotly_chart(fig, use_container_width=True)
 
     col3, col4 = st.columns(2)
@@ -599,7 +670,7 @@ with tabs[2]:
                          barmode="stack",
                          title="Sponsor vs. Strategic Activity Over Time",
                          template=TEMPLATE, color_discrete_sequence=COLORS)
-            fig.update_layout(height=H, yaxis_title="Deal Count")
+            fig.update_layout(height=H, yaxis_title="Deal Count", **DARK_BG)
             st.plotly_chart(fig, use_container_width=True)
 
     with col4:
@@ -610,7 +681,7 @@ with tabs[2]:
                          barmode="stack",
                          title="Deal Status Breakdown Over Time",
                          template=TEMPLATE, color_discrete_sequence=COLORS)
-            fig.update_layout(height=H, yaxis_title="Deal Count")
+            fig.update_layout(height=H, yaxis_title="Deal Count", **DARK_BG)
             st.plotly_chart(fig, use_container_width=True)
 
     # Sector value treemap
@@ -619,7 +690,7 @@ with tabs[2]:
         fig = px.treemap(tree_df, path=["sector_name"], values="total_value_usd",
                          title="Deal Value by Sector (Treemap)",
                          template=TEMPLATE, color_discrete_sequence=COLORS)
-        fig.update_layout(height=500)
+        fig.update_layout(height=500, **DARK_BG)
         st.plotly_chart(fig, use_container_width=True)
 
     # --- Market Signals Section ---
@@ -634,23 +705,14 @@ with tabs[2]:
     imbalance_df = imbalance_mod.detect_sector_imbalances(filters)
 
     if not imbalance_df.empty:
-        _SIGNAL_COLORS = {
-            "Overheating": "#FF6B6B",
-            "Healthy Growth": "#00D4AA",
-            "Narrowing": "#F7DC6F",
-            "Cooling": "#BB8FCE",
-            "Insufficient Data": "#888888",
-        }
-
         heat_df = imbalance_mod.market_heat_map(filters)
         if not heat_df.empty:
-            heat_df["color"] = heat_df["signal"].map(_SIGNAL_COLORS)
             fig_scatter = px.scatter(
                 heat_df,
                 x="activity_momentum_pct",
                 y="valuation_momentum_pct",
                 color="signal",
-                color_discrete_map=_SIGNAL_COLORS,
+                color_discrete_map=SIGNAL_COLORS,
                 text="sector_name",
                 title="Sector Quadrant Chart: Activity Momentum vs Valuation Momentum",
                 template=TEMPLATE,
@@ -660,45 +722,47 @@ with tabs[2]:
                 },
             )
             fig_scatter.update_traces(textposition="top center", marker=dict(size=14))
-            # Add quadrant reference lines
             fig_scatter.add_hline(y=0, line_dash="dash", line_color="#555", line_width=1)
             fig_scatter.add_vline(x=0, line_dash="dash", line_color="#555", line_width=1)
-            fig_scatter.update_layout(height=520)
+            fig_scatter.update_layout(height=520, **DARK_BG)
             st.plotly_chart(fig_scatter, use_container_width=True)
 
-        # Signal table
+        # Signal table — add n (recent deal count) and confidence qualifier
+        from ma.analytics.imbalance import signal_confidence as _sig_conf
         display_imbalance = imbalance_df[[
-            "sector_name", "activity_momentum_pct", "valuation_momentum_pct",
-            "recent_ev_median", "signal",
+            "sector_name", "recent_deal_count", "activity_momentum_pct",
+            "valuation_momentum_pct", "recent_ev_median", "signal",
         ]].copy()
+        display_imbalance["confidence"] = display_imbalance["recent_deal_count"].apply(_sig_conf)
         display_imbalance.columns = [
-            "Sector", "Activity Momentum (%)", "Valuation Momentum (%)",
-            "Recent Median EV/EBITDA", "Signal",
+            "Sector", "n (recent deals)", "Activity Momentum (%)", "Valuation Momentum (%)",
+            "Recent Median EV/EBITDA", "Signal", "Confidence",
         ]
 
         def _color_signal(val):
-            color_map = {
-                "Overheating": "color: #FF6B6B",
-                "Healthy Growth": "color: #00D4AA",
-                "Narrowing": "color: #F7DC6F",
-                "Cooling": "color: #BB8FCE",
-            }
-            return color_map.get(val, "")
+            return f"color: {SIGNAL_COLORS.get(val, '#888888')}"
 
-        styled = display_imbalance.style.applymap(
-            _color_signal, subset=["Signal"]
-        ).format({
-            "Activity Momentum (%)": "{:+.1f}%",
-            "Valuation Momentum (%)": "{:+.1f}%",
-            "Recent Median EV/EBITDA": "{:.1f}x",
-        }, na_rep="N/A")
+        def _color_confidence(val):
+            return f"color: {CONFIDENCE_COLORS.get(val, '#888888')}"
+
+        styled = (
+            display_imbalance.style
+            .applymap(_color_signal, subset=["Signal"])
+            .applymap(_color_confidence, subset=["Confidence"])
+            .format({
+                "Activity Momentum (%)": "{:+.1f}%",
+                "Valuation Momentum (%)": "{:+.1f}%",
+                "Recent Median EV/EBITDA": "{:.1f}x",
+            }, na_rep="N/A")
+        )
         st.dataframe(styled, use_container_width=True)
+        st.caption(f"'n (recent deals)' = deal count in the most recent 2-year window. Signals with n < {MIN_SAMPLE} are classified as Insufficient Data.")
 
         # Narrative
         narrative = imbalance_mod.imbalance_narrative(filters)
         if narrative:
             st.markdown("#### Sector Signal Narrative")
-            st.markdown(f'<div class="snapshot-box" style="border-left-color: #F7DC6F;">{narrative}</div>',
+            st.markdown(f'<div class="snapshot-box" style="border-left-color: {SIGNAL_COLORS["Narrowing"]};">{narrative}</div>',
                         unsafe_allow_html=True)
     else:
         st.info("Sector imbalance analysis requires 5+ years of data. Expand the date range to enable this analysis.")
@@ -720,7 +784,7 @@ with tabs[3]:
             fig = px.bar(rankings.sort_values("deal_count"), x="deal_count", y="sponsor_name",
                          orientation="h", title="Top Sponsors by Deal Count",
                          template=TEMPLATE, color_discrete_sequence=COLORS)
-            fig.update_layout(height=H, xaxis_title="Deals", yaxis_title="")
+            fig.update_layout(height=H, xaxis_title="Deals", yaxis_title="", **DARK_BG)
             st.plotly_chart(fig, use_container_width=True)
 
     with col2:
@@ -730,7 +794,7 @@ with tabs[3]:
             fig = px.bar(top_value.sort_values("total_B"), x="total_B", y="sponsor_name",
                          orientation="h", title="Top Sponsors by Total Deal Value ($B)",
                          template=TEMPLATE, color_discrete_sequence=[COLORS[1]])
-            fig.update_layout(height=H, xaxis_title="Total Deal Value ($B)", yaxis_title="")
+            fig.update_layout(height=H, xaxis_title="Total Deal Value ($B)", yaxis_title="", **DARK_BG)
             st.plotly_chart(fig, use_container_width=True)
 
     # Sponsor sector heatmap
@@ -746,20 +810,31 @@ with tabs[3]:
             ))
             fig.update_layout(title="Sponsor Sector Preferences (Deal Count Heatmap)",
                               template=TEMPLATE, height=H + 100,
-                              xaxis_tickangle=-30)
+                              xaxis_tickangle=-30, **DARK_BG)
             st.plotly_chart(fig, use_container_width=True)
 
     col3, col4 = st.columns(2)
 
     with col3:
-        # Entry multiples
+        # Entry multiples — only sponsors with >= MIN_SAMPLE deals with valid EV/EBITDA
         entry_df = sponsor_intel.sponsor_entry_multiples(filters, top_n=15)
         if not entry_df.empty:
-            fig = px.bar(entry_df.sort_values("avg_ev_to_ebitda"), x="avg_ev_to_ebitda", y="sponsor_name",
-                         orientation="h", title="Average Entry EV/EBITDA by Sponsor",
-                         template=TEMPLATE, color_discrete_sequence=[COLORS[4]])
-            fig.update_layout(height=H, xaxis_title="Avg EV/EBITDA (x)", yaxis_title="")
-            st.plotly_chart(fig, use_container_width=True)
+            # filter to sponsors with enough valuation data (ev_count column if present, else deal_count proxy)
+            _ev_count_col = "ev_count" if "ev_count" in entry_df.columns else None
+            if _ev_count_col:
+                _entry_incl = entry_df[entry_df[_ev_count_col] >= MIN_SAMPLE]
+                _entry_excl = entry_df[entry_df[_ev_count_col] < MIN_SAMPLE]["sponsor_name"].tolist()
+            else:
+                _entry_incl = entry_df
+                _entry_excl = []
+            if not _entry_incl.empty:
+                fig = px.bar(_entry_incl.sort_values("avg_ev_to_ebitda"), x="avg_ev_to_ebitda", y="sponsor_name",
+                             orientation="h", title="Average Entry EV/EBITDA by Sponsor",
+                             template=TEMPLATE, color_discrete_sequence=[COLORS[4]])
+                fig.update_layout(height=H, xaxis_title="Avg EV/EBITDA (x)", yaxis_title="", **DARK_BG)
+                st.plotly_chart(fig, use_container_width=True)
+                if _entry_excl:
+                    st.caption(f"Excluded (< {MIN_SAMPLE} deals with valid EV/EBITDA): {', '.join(_entry_excl)}.")
 
     with col4:
         # Sponsor deal trend
@@ -768,7 +843,7 @@ with tabs[3]:
             fig = px.line(trend_df, x="year", y="deal_count", color="sponsor_name",
                           title="Top Sponsors: Annual Deal Count",
                           template=TEMPLATE, color_discrete_sequence=COLORS)
-            fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Count")
+            fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Count", **DARK_BG)
             st.plotly_chart(fig, use_container_width=True)
 
     # Rankings table — convert $M columns to $B for readability
@@ -796,24 +871,20 @@ with tabs[3]:
 
     if not all_profiles_df.empty:
         # Summary profiles table
-        _STANCE_COLORS = {
-            "Premium Buyer": "#FF6B6B",
-            "Value Buyer": "#00D4AA",
-            "Market Buyer": "#F7DC6F",
-            "Unknown": "#888888",
-        }
-
         def _color_stance(val):
-            return f"color: {_STANCE_COLORS.get(val, '#888888')}"
+            return f"color: {STANCE_COLORS.get(val, '#888888')}"
 
         display_profiles = all_profiles_df.copy()
+        fmt_cols = {"avg_ev_ebitda": "{:.1f}x", "ev_premium_vs_market": "{:+.1f}x"}
+        style_cols = ["valuation_stance"]
+        # Include ev_ebitda_count column if present
         st.dataframe(
             display_profiles.style
-            .applymap(_color_stance, subset=["valuation_stance"])
-            .format({"avg_ev_ebitda": "{:.1f}x", "ev_premium_vs_market": "{:+.1f}x"},
-                    na_rep="N/A"),
+            .applymap(_color_stance, subset=style_cols)
+            .format(fmt_cols, na_rep="N/A"),
             use_container_width=True,
         )
+        st.caption(f"Valuation stance requires ≥ {MIN_SAMPLE} deals with valid EV/EBITDA data. 'Insufficient valuation data' shown otherwise.")
 
         # Drill-down: profile card for selected sponsor
         st.markdown("#### Sponsor Profile Card")
@@ -824,17 +895,19 @@ with tabs[3]:
             profile = sponsor_profile_mod.generate_sponsor_profile(selected_sponsor, filters)
             if profile:
                 stance = profile.get("valuation_stance", "Unknown")
-                stance_color = _STANCE_COLORS.get(stance, "#888888")
+                stance_color = STANCE_COLORS.get(stance, "#888888")
                 narrative = profile.get("narrative", "")
                 sectors = ", ".join(profile.get("preferred_sectors", [])[:3]) or "N/A"
                 ev = profile.get("avg_ev_ebitda")
                 premium = profile.get("ev_premium_vs_market")
                 deal_size = profile.get("avg_deal_size_usd")
                 size_stance = profile.get("deal_size_stance", "N/A")
+                ev_cnt = profile.get("ev_ebitda_count", 0)
+                deal_cnt = profile.get("deal_count", 0)
 
                 cp1, cp2, cp3, cp4 = st.columns(4)
                 cp1.markdown(f"""<div class="metric-card">
-                    <div class="metric-value" style="color:{stance_color};">{stance}</div>
+                    <div class="metric-value" style="color:{stance_color}; font-size:20px;">{stance}</div>
                     <div class="metric-label">Valuation Stance</div>
                 </div>""", unsafe_allow_html=True)
                 cp2.markdown(f"""<div class="metric-card">
@@ -850,6 +923,13 @@ with tabs[3]:
                     <div class="metric-label">Avg Deal Size</div>
                 </div>""", unsafe_allow_html=True)
 
+                # Confidence display for valuation stance
+                ev_badge = confidence_badge(ev_cnt)
+                stance_note = (
+                    f"Valuation classification based on {ev_cnt}/{deal_cnt} deals with valid EV/EBITDA data. "
+                    + ev_badge
+                )
+                st.markdown(stance_note, unsafe_allow_html=True)
                 st.markdown(f"**Preferred Sectors:** {sectors} &nbsp;&nbsp; **Deal Size Profile:** {size_stance}",
                             unsafe_allow_html=True)
                 st.markdown(f'<div class="snapshot-box" style="border-left-color: {stance_color};">{narrative}</div>',
@@ -1168,7 +1248,8 @@ Low-quality records can be filtered out using the **Completeness Threshold** sli
             fig = px.histogram(comp_df, x="completeness_score", nbins=20,
                                title="Completeness Score Distribution",
                                template=TEMPLATE, color_discrete_sequence=COLORS)
-            fig.update_layout(height=350, xaxis_title="Completeness Score (%)", yaxis_title="Count")
+            fig.update_layout(height=350, xaxis_title="Completeness Score (%)", yaxis_title="Count",
+                              **DARK_BG)
             st.plotly_chart(fig, use_container_width=True)
 
             low_q = comp_df[comp_df["completeness_score"] < 50]
@@ -1185,6 +1266,7 @@ Low-quality records can be filtered out using the **Completeness Threshold** sli
             fig = px.pie(audit, names="data_origin", values="deal_count",
                          title="Real vs. Synthetic Records",
                          template=TEMPLATE, color_discrete_sequence=[COLORS[0], COLORS[1]], hole=0.4)
+            fig.update_layout(**DARK_BG)
             st.plotly_chart(fig, use_container_width=True)
             st.dataframe(audit, use_container_width=True)
 
