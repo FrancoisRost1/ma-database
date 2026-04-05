@@ -1,0 +1,471 @@
+# =============================================================================
+# M&A Database + Analysis Tool — Configuration
+# =============================================================================
+# All weights, thresholds, and assumptions live here. Never hardcode numbers.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Database
+# -----------------------------------------------------------------------------
+database:
+  engine: "duckdb"
+  path: "data/ma_database.duckdb"
+  # Abstraction layer supports future switch to sqlite or postgres
+
+# -----------------------------------------------------------------------------
+# Seed data
+# -----------------------------------------------------------------------------
+seed:
+  real_deals_path: "data/raw/real_deals.csv"
+  target_real_count: 100            # aim for 80-120
+  min_real_count: 80                # minimum acceptable
+  target_synthetic_count: 300       # bring total to ~400-500
+  synthetic_min: 200
+  synthetic_max: 400
+
+# -----------------------------------------------------------------------------
+# Synthetic data generation parameters
+# -----------------------------------------------------------------------------
+synthetic:
+  # Deal value distribution (millions USD, log-normal)
+  deal_value:
+    median: 2000.0
+    min: 100.0
+    max: 50000.0
+    log_std: 1.2
+
+  # Acquirer type split (must sum to 1.0)
+  acquirer_type_weights:
+    sponsor: 0.40
+    strategic: 0.55
+    consortium: 0.05
+
+  # Deal type weights (must sum to 1.0)
+  deal_type_weights:
+    strategic_acquisition: 0.40
+    lbo: 0.25
+    merger: 0.15
+    take_private: 0.12
+    carve_out: 0.08
+
+  # Deal status weights
+  deal_status_weights:
+    closed: 0.75
+    announced: 0.10
+    pending: 0.08
+    terminated: 0.07
+
+  # Year weights — heavier toward recent years
+  year_range:
+    start: 2016
+    end: 2026
+  year_recency_bias: 1.3            # multiplier per year closer to present
+
+  # EV/EBITDA ranges by sector (mean, std)
+  ev_to_ebitda_by_sector:
+    Technology:
+      mean: 15.0
+      std: 3.0
+    Healthcare:
+      mean: 13.0
+      std: 2.5
+    Industrials:
+      mean: 10.0
+      std: 2.0
+    Consumer Discretionary:
+      mean: 11.0
+      std: 2.5
+    Consumer Staples:
+      mean: 12.0
+      std: 2.0
+    Financials:
+      mean: 10.0
+      std: 2.5
+    Energy:
+      mean: 7.0
+      std: 2.0
+    Materials:
+      mean: 8.5
+      std: 2.0
+    Real Estate:
+      mean: 16.0
+      std: 3.0
+    Communication Services:
+      mean: 12.0
+      std: 3.0
+    Utilities:
+      mean: 10.0
+      std: 1.5
+
+  # EV/Revenue ranges by sector (mean, std)
+  ev_to_revenue_by_sector:
+    Technology:
+      mean: 5.0
+      std: 2.0
+    Healthcare:
+      mean: 4.0
+      std: 1.5
+    Industrials:
+      mean: 1.8
+      std: 0.8
+    Consumer Discretionary:
+      mean: 1.5
+      std: 0.7
+    Consumer Staples:
+      mean: 2.0
+      std: 0.8
+    Financials:
+      mean: 3.0
+      std: 1.5
+    Energy:
+      mean: 1.5
+      std: 0.8
+    Materials:
+      mean: 1.5
+      std: 0.6
+    Real Estate:
+      mean: 5.0
+      std: 2.0
+    Communication Services:
+      mean: 3.5
+      std: 1.5
+    Utilities:
+      mean: 2.5
+      std: 0.8
+
+  # Premium paid for public targets (percentage points)
+  premium:
+    mean: 30.0
+    std: 10.0
+    min: 5.0
+    max: 80.0
+    # Only applied to target_status = "public"
+
+  # Leverage multiple for LBO deals
+  leverage:
+    mean: 5.5
+    std: 1.5
+    min: 3.0
+    max: 8.0
+
+  # Probability that optional fields are populated (synthetic realism)
+  field_fill_probability:
+    closing_date: 0.75
+    enterprise_value: 0.85
+    equity_value: 0.60
+    ev_to_ebitda: 0.70
+    ev_to_revenue: 0.55
+    premium_paid_pct: 0.40           # only for public targets
+    leverage_multiple: 0.50          # only for LBO deals
+    financing_structure_text: 0.30
+    hostile_or_friendly: 0.50
+    target_ebitda: 0.65
+    target_revenue: 0.70
+    target_ebitda_margin: 0.60
+
+# -----------------------------------------------------------------------------
+# Sector taxonomy (GICS-style, simplified)
+# -----------------------------------------------------------------------------
+sectors:
+  - sector_name: "Technology"
+    sub_industries:
+      - "Application Software"
+      - "Infrastructure Software"
+      - "Semiconductors"
+      - "IT Services"
+      - "Internet & E-Commerce"
+      - "Data & Analytics"
+      - "Cybersecurity"
+
+  - sector_name: "Healthcare"
+    sub_industries:
+      - "Pharmaceuticals"
+      - "Biotechnology"
+      - "Medical Devices"
+      - "Healthcare Services"
+      - "Managed Care"
+      - "Life Sciences Tools"
+      - "Animal Health"
+
+  - sector_name: "Industrials"
+    sub_industries:
+      - "Aerospace & Defense"
+      - "Building Products"
+      - "Electrical Equipment"
+      - "Industrial Distribution"
+      - "Machinery"
+      - "Transportation & Logistics"
+      - "Waste Management"
+
+  - sector_name: "Consumer Discretionary"
+    sub_industries:
+      - "Retail"
+      - "Restaurants & Leisure"
+      - "Apparel & Luxury"
+      - "Automotive"
+      - "Home Improvement"
+      - "Travel & Hospitality"
+
+  - sector_name: "Consumer Staples"
+    sub_industries:
+      - "Food & Beverage"
+      - "Household Products"
+      - "Personal Care"
+      - "Tobacco"
+      - "Packaging"
+
+  - sector_name: "Financials"
+    sub_industries:
+      - "Banks"
+      - "Insurance"
+      - "Asset Management"
+      - "Fintech & Payments"
+      - "Specialty Finance"
+      - "Capital Markets"
+
+  - sector_name: "Energy"
+    sub_industries:
+      - "Oil & Gas E&P"
+      - "Oil & Gas Services"
+      - "Midstream"
+      - "Refining & Marketing"
+      - "Renewables"
+
+  - sector_name: "Materials"
+    sub_industries:
+      - "Chemicals"
+      - "Metals & Mining"
+      - "Construction Materials"
+      - "Packaging Materials"
+
+  - sector_name: "Real Estate"
+    sub_industries:
+      - "REITs"
+      - "Real Estate Services"
+      - "Real Estate Development"
+
+  - sector_name: "Communication Services"
+    sub_industries:
+      - "Media & Entertainment"
+      - "Telecom"
+      - "Digital Advertising"
+      - "Gaming"
+
+  - sector_name: "Utilities"
+    sub_industries:
+      - "Electric Utilities"
+      - "Gas Utilities"
+      - "Water Utilities"
+      - "Renewable Utilities"
+
+# -----------------------------------------------------------------------------
+# Sponsor universe (for synthetic generation + party seeding)
+# -----------------------------------------------------------------------------
+sponsors:
+  - "Blackstone"
+  - "KKR"
+  - "Apollo Global Management"
+  - "Carlyle Group"
+  - "Bain Capital"
+  - "Vista Equity Partners"
+  - "Thoma Bravo"
+  - "Silver Lake"
+  - "Warburg Pincus"
+  - "TPG"
+  - "Advent International"
+  - "Hellman & Friedman"
+  - "EQT"
+  - "CVC Capital Partners"
+  - "Permira"
+  - "Leonard Green & Partners"
+  - "Francisco Partners"
+  - "Insight Partners"
+  - "General Atlantic"
+  - "Brookfield Asset Management"
+
+# Strategic acquirers seeded separately via real_deals.csv
+
+# -----------------------------------------------------------------------------
+# Known consortium vehicles (PE club deals and infrastructure funds)
+# -----------------------------------------------------------------------------
+consortiums:
+  - "Blackstone / KKR Consortium"
+  - "KKR / Carlyle Consortium"
+  - "Apollo / TPG Consortium"
+  - "Blackstone / Carlyle Consortium"
+  - "KKR / Warburg Pincus Consortium"
+
+# -----------------------------------------------------------------------------
+# Completeness scoring weights
+# -----------------------------------------------------------------------------
+# Philosophy: weight reflects analytical importance for M&A deal analysis.
+# A deal missing financials (EV, EBITDA, revenue) should score lower than
+# a deal missing process fields (hostile_or_friendly, notes).
+#
+# Change log:
+# - Removed data_origin from Tier 1 (always filled, adds no signal)
+# - Added enterprise_value, target_ebitda, target_revenue to Tier 2
+#   (core financial data that matters for valuation analysis)
+# -----------------------------------------------------------------------------
+completeness:
+  # Tier 1 — highest importance (weight 3.0)
+  # Core deal identity fields that every record must have
+  tier_1:
+    weight: 3.0
+    fields:
+      - "announcement_date"
+      - "acquirer_party_id"
+      - "target_name"
+      - "deal_type"
+      - "sector_id"
+      - "deal_value_usd"
+      - "deal_status"
+
+  # Tier 2 — major analytical value (weight 2.0)
+  # Valuation, financial, and classification fields used in core analytics
+  tier_2:
+    weight: 2.0
+    fields:
+      - "ev_to_ebitda"
+      - "ev_to_revenue"
+      - "premium_paid_pct"
+      - "acquirer_type"              # derived from party
+      - "closing_date"
+      - "geography"
+      - "enterprise_value"           # core financial data
+      - "target_ebitda"              # core financial data
+      - "target_revenue"             # core financial data
+
+  # Tier 3 — useful but secondary (weight 1.0)
+  # Process, source, and enrichment fields
+  tier_3:
+    weight: 1.0
+    fields:
+      - "financing_structure_text"
+      - "leverage_multiple"
+      - "hostile_or_friendly"
+      - "notes"
+      - "source_url"
+      - "sub_industry"
+
+  # Quality thresholds
+  thresholds:
+    high: 80.0                # >= 80% → green
+    medium: 50.0              # 50-79% → yellow
+    low: 50.0                 # < 50% → red, flagged
+
+# -----------------------------------------------------------------------------
+# Confidence scoring (rule-based, Phase 1)
+# -----------------------------------------------------------------------------
+confidence:
+  rules:
+    real_with_source: 1.0     # data_origin=real AND source_url is not null
+    real_without_source: 0.8  # data_origin=real AND source_url is null
+    synthetic: 0.5            # data_origin=synthetic
+  low_completeness_cap:
+    threshold: 30.0           # completeness < 30%
+    max_confidence: 0.3       # cap confidence at this value
+
+# -----------------------------------------------------------------------------
+# Dashboard
+# -----------------------------------------------------------------------------
+dashboard:
+  theme: "dark"               # Bloomberg dark mode
+  plotly_template: "plotly_dark"
+  chart_height: 450
+  chart_color_palette:
+    - "#00D4AA"               # primary teal
+    - "#FF6B6B"               # red accent
+    - "#4ECDC4"               # secondary teal
+    - "#45B7D1"               # blue accent
+    - "#F7DC6F"               # gold
+    - "#BB8FCE"               # purple
+    - "#85C1E9"               # light blue
+    - "#F0B27A"               # orange
+    - "#82E0AA"               # green
+    - "#F1948A"               # pink
+
+  # Time granularity
+  default_time_granularity: "annual"   # annual | quarterly
+  allow_quarterly_toggle: true
+
+  # Tabs
+  tabs:
+    - "Overview"
+    - "Valuation"
+    - "Market Activity"
+    - "Sponsor Intelligence"
+    - "Deal Explorer"
+    - "Data Management"
+
+# -----------------------------------------------------------------------------
+# Global sidebar filters (defaults)
+# -----------------------------------------------------------------------------
+filters:
+  date_range:
+    start: 2016
+    end: 2026
+  sector: "all"
+  sub_industry: "all"
+  deal_type: "all"
+  acquirer_type: "all"
+  acquirer_name: "all"
+  deal_status: "all"
+  geography: "all"
+  deal_value_min: 0.0         # millions USD
+  deal_value_max: 999999.0    # effectively no cap
+  data_origin: "all"          # real / synthetic / all
+  completeness_min: 0.0       # 0 = show all deals
+
+# -----------------------------------------------------------------------------
+# Export
+# -----------------------------------------------------------------------------
+export:
+  csv:
+    enabled: true
+    output_dir: "outputs"
+  excel:
+    enabled: true
+    output_dir: "outputs"
+    include_summary_sheet: true
+    include_valuation_sheet: true
+  pdf:
+    enabled: false            # Phase 2
+
+# -----------------------------------------------------------------------------
+# M&A Market Snapshot (auto-generated memo)
+# -----------------------------------------------------------------------------
+snapshot:
+  enabled: true
+  # Memo covers: active sectors, valuation shifts, sponsor vs strategic mix,
+  # top sponsors, completion rate, concentration patterns
+  compare_prior_period: true  # compare current filters vs same-length prior period
+  max_length_words: 400
+
+# -----------------------------------------------------------------------------
+# Validation rules
+# -----------------------------------------------------------------------------
+validation:
+  required_fields:
+    - "announcement_date"
+    - "target_name"
+    - "deal_type"
+    - "deal_status"
+    - "data_origin"
+  deal_value_min: 0.0
+  deal_value_max: 500000.0     # $500B cap for sanity
+  ev_to_ebitda_min: 1.0
+  ev_to_ebitda_max: 100.0
+  ev_to_revenue_min: 0.1
+  ev_to_revenue_max: 100.0
+  premium_min: -50.0           # allow negative premiums (distressed)
+  premium_max: 200.0
+  leverage_min: 0.0
+  leverage_max: 15.0
+
+  # Duplicate detection
+  duplicate_check_fields:
+    - "announcement_date"
+    - "acquirer_party_id"
+    - "target_name"
+  duplicate_date_tolerance_days: 30   # same acquirer + target within 30 days = likely dupe
