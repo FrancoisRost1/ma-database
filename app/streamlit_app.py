@@ -772,8 +772,8 @@ with tabs[2]:
 
         styled = (
             display_imbalance.style
-            .applymap(_color_signal, subset=["Signal"])
-            .applymap(_color_confidence, subset=["Confidence"])
+            .map(_color_signal, subset=["Signal"])
+            .map(_color_confidence, subset=["Confidence"])
             .format({
                 "Activity Momentum (%)": "{:+.1f}%",
                 "Valuation Momentum (%)": "{:+.1f}%",
@@ -905,7 +905,7 @@ with tabs[3]:
         # Include ev_ebitda_count column if present
         st.dataframe(
             display_profiles.style
-            .applymap(_color_stance, subset=style_cols)
+            .map(_color_stance, subset=style_cols)
             .format(fmt_cols, na_rep="N/A"),
             use_container_width=True,
         )
