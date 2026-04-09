@@ -5,7 +5,7 @@ Uses openpyxl for formatting. data_origin column always preserved.
 """
 import os
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 from ma.db import queries
@@ -22,7 +22,7 @@ def export_deals_excel(filters: dict = None, config: dict = None, filename: str 
     os.makedirs(output_dir, exist_ok=True)
 
     if not filename:
-        ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         filename = f"ma_deals_{ts}.xlsx"
 
     filepath = os.path.join(output_dir, filename)

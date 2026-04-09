@@ -6,7 +6,7 @@ All records get data_origin='real'. Scoring runs after insertion.
 import uuid
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from ma.db import queries
@@ -74,8 +74,8 @@ def seed_real_deals(config: dict) -> int:
                 "financing_structure_text": _str(row.get("financing_structure_text")),
                 "notes": _str(row.get("notes")),
                 "data_origin": "real",
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow(),
+                "created_at": datetime.now(timezone.utc).replace(tzinfo=None),
+                "updated_at": datetime.now(timezone.utc).replace(tzinfo=None),
             }
 
             # Skip if missing core required field

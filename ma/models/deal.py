@@ -4,9 +4,14 @@ Used as the in-memory representation during ingestion and validation.
 Simplifying assumption: single acquirer per deal (no joint ventures in Phase 1).
 """
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Optional
 import uuid
+
+
+def _utcnow_naive() -> datetime:
+    """Return current UTC time as a naive datetime (matches DuckDB TIMESTAMP column)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 @dataclass
@@ -52,8 +57,8 @@ class Deal:
     notes: Optional[str] = None
 
     # Audit
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=_utcnow_naive)
+    updated_at: datetime = field(default_factory=_utcnow_naive)
 
     def to_dict(self) -> dict:
         """Convert to dict for DuckDB insertion."""
