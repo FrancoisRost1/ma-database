@@ -3,9 +3,16 @@ M&A Database Dashboard — Bloomberg dark mode, 6 tabs, global sidebar filters.
 Consistent with lbo-engine and pe-target-screener visual style.
 All charts use Plotly dark template. No 3D, no decorative elements.
 """
+import os
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+# Resolve project root and make it both import-visible AND the working directory,
+# so relative paths in config.yaml (data/ma_database.duckdb, data/raw/real_deals.csv)
+# resolve correctly on Streamlit Cloud regardless of how the app is launched.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+os.chdir(PROJECT_ROOT)
 
 import streamlit as st
 import pandas as pd
@@ -122,19 +129,33 @@ def confidence_badge(n: int) -> str:
 
 
 # ---------------------------------------------------------------------------
-# DB init (cached)
+# DB init (cached) — creates schema + seeds from data/raw/real_deals.csv on
+# first run. Cold-start safe: on Streamlit Cloud the .duckdb file does not
+# exist in the repo (gitignored), so this block regenerates it end-to-end.
 # ---------------------------------------------------------------------------
 @st.cache_resource
 def _init():
-    init_db(CONFIG["database"]["path"])
+    db_path = PROJECT_ROOT / CONFIG["database"]["path"]
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    init_db(str(db_path))
     create_schema()
     if queries.get_deals_count() == 0:
-        seed_real_deals(CONFIG)
+        real_inserted = seed_real_deals(CONFIG)
         cnt = queries.get_deals_count()
-        seed_synthetic_deals(CONFIG, cnt)
-    return True
+        syn_inserted = seed_synthetic_deals(CONFIG, cnt)
+        return {"status": "seeded", "real": real_inserted, "synthetic": syn_inserted}
+    return {"status": "existing", "count": queries.get_deals_count()}
 
-_init()
+try:
+    _init()
+except Exception as exc:  # surface init errors on Streamlit Cloud instead of
+    # letting the next query blow up with a cryptic DuckDB error
+    st.error(
+        "Database initialization failed. This usually means the DuckDB file "
+        "could not be created or the seed data could not be loaded.\n\n"
+        f"**Error:** `{type(exc).__name__}: {exc}`"
+    )
+    st.stop()
 
 
 # ---------------------------------------------------------------------------
