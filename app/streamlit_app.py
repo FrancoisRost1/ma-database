@@ -3,6 +3,10 @@ M&A Database Dashboard — Bloomberg dark mode, 6 tabs, global sidebar filters.
 Consistent with lbo-engine and pe-target-screener visual style.
 All charts use Plotly dark template. No 3D, no decorative elements.
 """
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
