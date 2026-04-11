@@ -8,9 +8,9 @@ Institutional-style M&A intelligence platform with relational deal database, reg
 
 This is not a CSV viewer with filters. It is a structured intelligence platform built around a normalized relational database of M&A transactions, with an analytics engine that models how institutional investors actually think about deal markets.
 
-The platform stores 390 transactions across 11 GICS-style sectors, split between 90 curated real deals and a 300-deal synthetic extension layer. Real and synthetic data are strictly separated — the dashboard defaults to real-only view, and every synthetic record is flagged throughout the UI and exports.
+The platform stores 390 transactions across 11 GICS-style sectors, split between 90 curated real deals and a 300-deal synthetic extension layer. Real and synthetic data are strictly separated, the dashboard defaults to real-only view, and every synthetic record is flagged throughout the UI and exports.
 
-The analytical depth goes beyond basic aggregation. The platform detects market regime transitions (Peak/Recovery/Selective/Trough), computes relative valuation positioning by sector vs. market history, profiles sponsor behavior (Premium/Value/Market buyer classification), and surfaces momentum-based imbalance signals across sectors. A rule-based interpretation engine generates 5-section analyst-style memos with financial language — not data dumps, but structured observations with "which suggests..." framing.
+The analytical depth goes beyond basic aggregation. The platform detects market regime transitions (Peak/Recovery/Selective/Trough), computes relative valuation positioning by sector vs. market history, profiles sponsor behavior (Premium/Value/Market buyer classification), and surfaces momentum-based imbalance signals across sectors. A rule-based interpretation engine generates 5-section analyst-style memos with financial language, not data dumps, but structured observations with "which suggests..." framing.
 
 ---
 
@@ -35,7 +35,7 @@ Six tabs, Bloomberg dark theme, global sidebar filters (date range, sector, deal
 
 Five normalized tables: `deals` (core transaction record), `parties` (unified sponsor + strategic acquirer entity), `sectors` (GICS-style taxonomy), `valuation_metrics` (one-to-one with deals), `deal_metadata` (source tracking + quality scores). Two analytical views: `v_deals_flat` (denormalized join) and `v_deals_summary` (pre-aggregated by year/sector/deal type).
 
-Weighted completeness scoring across three tiers (Tier 1: announcement date, acquirer, target, deal type, sector, value, status — weight 3.0; Tier 2: valuation multiples, closing date, geography — weight 2.0; Tier 3: financing structure, source URL, notes — weight 1.0). Confidence scoring based on data origin and source citation.
+Weighted completeness scoring across three tiers (Tier 1: announcement date, acquirer, target, deal type, sector, value, status, weight 3.0; Tier 2: valuation multiples, closing date, geography, weight 2.0; Tier 3: financing structure, source URL, notes, weight 1.0). Confidence scoring based on data origin and source citation.
 
 ---
 
@@ -45,7 +45,7 @@ Weighted completeness scoring across three tiers (Tier 1: announcement date, acq
 Classifies each year as **Peak/Late-Cycle**, **Recovery/Opportunity**, **Selective/Cautious**, or **Trough/Distressed** based on deal activity and median EV/EBITDA relative to full-period historical medians. Sponsor-led vs. strategic-led mix is a third axis.
 
 ### Relative Valuation
-Sector premium/discount vs. market median, historical percentile positioning (where is the current sector median vs. its own 10-year range), and sponsor vs. strategic entry multiple spread — by sector.
+Sector premium/discount vs. market median, historical percentile positioning (where is the current sector median vs. its own 10-year range), and sponsor vs. strategic entry multiple spread, by sector.
 
 ### Sponsor Behavioral Profiling
 Per-sponsor: **Premium Buyer** (avg EV/EBITDA > market + 1.0x), **Value Buyer** (< market − 1.0x), or **Market Buyer**. Plus sector concentration, deal size profile vs. market, and regime activity timing.
@@ -62,7 +62,7 @@ Momentum-based signals from activity (deal count last 2yr vs. prior 3yr) and val
 
 | | Count | Notes |
 |---|---|---|
-| **Real deals** | 90 | Curated from public sources, 2015–2024 |
+| **Real deals** | 90 | Curated from public sources, 2015-2024 |
 | **Synthetic extension** | 300 | Realistic distributions, recency-weighted, separately filterable |
 | **Sectors** | 11 | GICS-style with sub-industries |
 | **Sponsors** | 25 | Blackstone, KKR, Apollo, Thoma Bravo, Vista, Carlyle, and more |
@@ -80,7 +80,7 @@ All records carry `data_origin = real | synthetic`. Synthetic records never crea
 | Backend | Python, Pandas |
 | Dashboard | Streamlit, Plotly |
 | Export | CSV, Excel (openpyxl) |
-| Testing | pytest — 124 tests (62 core + 62 hardened) |
+| Testing | pytest, 124 tests (62 core + 62 hardened) |
 
 ---
 

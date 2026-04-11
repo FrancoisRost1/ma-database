@@ -42,7 +42,7 @@ from ma.utils.formatting import fmt_currency, fmt_multiple, fmt_pct, quality_lab
 # ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="M&A Database",
-    page_icon="🏦",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -190,7 +190,7 @@ def build_filters() -> dict:
 **Data Architecture**
 - 5 relational tables (deals, parties, sectors, valuation_metrics, deal_metadata)
 - 2 analytical views (v_deals_flat, v_deals_summary)
-- DuckDB columnar engine — optimized for analytical aggregation
+- DuckDB columnar engine: optimized for analytical aggregation
 
 **Data Sources**
 - Curated real transactions from public filings, press releases, and deal announcements
@@ -289,7 +289,7 @@ filters = build_filters()
 # ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
-st.markdown("# 🏦 M&A Database + Analysis Tool")
+st.markdown("# M&A Database and Analysis Tool")
 st.markdown("Institutional M&A intelligence: valuations, sponsor behavior, and market activity trends.")
 st.divider()
 
@@ -339,12 +339,12 @@ with tabs[0]:
         _synth_pct = _synth_n / _total_n * 100
 
         dc1, dc2, dc3 = st.columns(3)
-        dc1.metric("🟢 Real Deals", f"{_real_n:,}", f"{_real_pct:.0f}% of universe")
-        dc2.metric("🔵 Synthetic Deals", f"{_synth_n:,}", f"{_synth_pct:.0f}% of universe")
-        dc3.metric("⚪ Combined Universe", f"{_total_n:,}", "All deal records")
+        dc1.metric("Real Deals", f"{_real_n:,}", f"{_real_pct:.0f}% of universe")
+        dc2.metric("Synthetic Deals", f"{_synth_n:,}", f"{_synth_pct:.0f}% of universe")
+        dc3.metric("Combined Universe", f"{_total_n:,}", "All deal records")
         st.caption(
             "Data origin is controlled via the sidebar filter. "
-            "Analytics default to **real transactions only** — use 'all' to include the synthetic extension layer."
+            "Analytics default to **real transactions only**: use 'all' to include the synthetic extension layer."
         )
 
         st.markdown("---")
@@ -482,7 +482,7 @@ with tabs[1]:
             if _ev_excluded:
                 captions.append(f"Excluded (< {MIN_SAMPLE} obs): {', '.join(_ev_excluded)}.")
             if _ev_caution:
-                captions.append(f"Interpret with caution (3–5 obs): {', '.join(_ev_caution)}.")
+                captions.append(f"Interpret with caution (3-5 obs): {', '.join(_ev_caution)}.")
             if captions:
                 st.caption(" ".join(captions))
 
@@ -596,7 +596,7 @@ with tabs[1]:
                 )
                 fig_pct.update_traces(texttemplate="%{text:.0f}th", textposition="outside")
                 fig_pct.update_layout(height=H, coloraxis_showscale=False,
-                                      xaxis_title="Historical Percentile (0–100th)", **DARK_BG)
+                                      xaxis_title="Historical Percentile (0-100th)", **DARK_BG)
                 st.plotly_chart(fig_pct, use_container_width=True)
                 st.caption(f"Only sectors with ≥ {MIN_SAMPLE} valid observations shown.")
 
@@ -720,7 +720,7 @@ with tabs[2]:
 
     # --- Market Signals Section ---
     st.markdown("---")
-    st.markdown("### Market Signals — Sector Imbalance Detection")
+    st.markdown("### Market Signals: Sector Imbalance Detection")
     st.caption(
         "Activity momentum vs valuation momentum by sector. "
         "Each sector is classified into one of four quadrants: "
@@ -1023,7 +1023,7 @@ with tabs[4]:
             row = deals_df.iloc[selected_idx]
             is_synthetic = row.get("data_origin") == "synthetic"
             if is_synthetic:
-                st.warning("⚠️ SYNTHETIC RECORD — This deal is simulated and does not represent a real transaction.")
+                st.warning(" SYNTHETIC RECORD: This deal is simulated and does not represent a real transaction.")
             with st.expander(f"Deal Detail: {row.get('target_name')}", expanded=True):
                 c1, c2, c3 = st.columns(3)
                 with c1:
@@ -1254,13 +1254,13 @@ with tabs[5]:
 
 Each deal is scored on a weighted scale based on field importance for M&A analysis:
 
-- **Tier 1 (weight 3.0)** — Deal identity: announcement date, acquirer, target, deal type, sector, deal value, status
-- **Tier 2 (weight 2.0)** — Analytical value: EV/EBITDA, EV/Revenue, premium paid, enterprise value, target EBITDA, target revenue, closing date, geography
-- **Tier 3 (weight 1.0)** — Secondary: financing structure, leverage, hostile/friendly, notes, source URL, sub-industry
+- **Tier 1 (weight 3.0)**: Deal identity: announcement date, acquirer, target, deal type, sector, deal value, status
+- **Tier 2 (weight 2.0)**: Analytical value: EV/EBITDA, EV/Revenue, premium paid, enterprise value, target EBITDA, target revenue, closing date, geography
+- **Tier 3 (weight 1.0)**: Secondary: financing structure, leverage, hostile/friendly, notes, source URL, sub-industry
 
-**Quality tiers:** High (≥80%) · Medium (50–79%) · Low (<50%)
+**Quality tiers:** High (≥80%) · Medium (50-79%) · Low (<50%)
 
-**Confidence** is scored separately — based on data origin (real vs synthetic) and source verification.
+**Confidence** is scored separately: based on data origin (real vs synthetic) and source verification.
 Low-completeness records (below 30%) are capped at 0.3 confidence regardless of source quality.
 
 Low-quality records can be filtered out using the **Completeness Threshold** slider in the sidebar.
