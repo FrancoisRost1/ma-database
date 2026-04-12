@@ -16,6 +16,8 @@ The analytical depth goes beyond basic aggregation. The platform detects market 
 
 ## Dashboard
 
+![Dashboard](docs/screenshot.png)
+
 Six tabs, Bloomberg dark theme, global sidebar filters (date range, sector, deal type, acquirer, geography, data origin).
 
 | Tab | Contents |
