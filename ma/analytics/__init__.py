@@ -1,1 +1,1 @@
-# ma.analytics — analytical query layer
+# ma.analytics, analytical query layer

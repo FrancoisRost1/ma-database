@@ -1,5 +1,5 @@
 """
-Market Imbalance Detection — identifies sectors showing overheating, cooling,
+Market Imbalance Detection, identifies sectors showing overheating, cooling,
 or healthy growth signals based on activity momentum and valuation momentum.
 
 Financial rationale: M&A cycles are non-linear. A sector can go from underserved
@@ -122,10 +122,10 @@ def detect_sector_imbalances(filters: dict = None) -> pd.DataFrame:
     def _classify_signal(act: float, val: float) -> str:
         """
         Four-quadrant classification based on activity and valuation momentum.
-        Overheating: both rising — competitive pressure driving prices above fundamentals.
-        Healthy Growth: rising activity, flat/falling multiples — demand not yet reflected in price.
-        Narrowing: falling activity but rising multiples — only select deals clear the bar.
-        Cooling: both falling — disengagement, potential value emerging.
+        Overheating: both rising, competitive pressure driving prices above fundamentals.
+        Healthy Growth: rising activity, flat/falling multiples, demand not yet reflected in price.
+        Narrowing: falling activity but rising multiples, only select deals clear the bar.
+        Cooling: both falling, disengagement, potential value emerging.
         """
         if pd.isna(act) or pd.isna(val):
             return "Insufficient Data"
@@ -159,19 +159,19 @@ def detect_sector_imbalances(filters: dict = None) -> pd.DataFrame:
             return (
                 f"{sector}: deal volume up {act:.0f}% with multiples expanding "
                 f"{val:+.0f}%{ev_str}. Competitive pressure is driving valuations "
-                f"above fundamental support — new entrants face elevated entry risk."
+                f"above fundamental support, new entrants face elevated entry risk."
             )
         if signal == "Healthy Growth":
             return (
                 f"{sector}: rising deal activity ({act:+.0f}%) with contained multiples "
                 f"({val:+.0f}%){ev_str}. Demand is increasing but not yet reflected in "
-                f"price — a constructive entry environment."
+                f"price, a constructive entry environment."
             )
         if signal == "Narrowing":
             return (
                 f"{sector}: declining activity ({act:.0f}%) while multiples expand "
                 f"({val:+.0f}%){ev_str}. Only high-conviction deals are clearing at "
-                f"elevated prices — selection quality risk is rising."
+                f"elevated prices, selection quality risk is rising."
             )
         if signal == "Cooling":
             return (
@@ -223,8 +223,8 @@ def imbalance_narrative(filters: dict = None) -> str:
     """
     Analyst-style narrative summarizing the top 2-3 sector signals.
 
-    E.g., 'Technology shows Overheating signals — deal activity up 35% while
-    multiples expanded 2.1x. Healthcare shows Healthy Growth — rising activity
+    E.g., 'Technology shows Overheating signals, deal activity up 35% while
+    multiples expanded 2.1x. Healthcare shows Healthy Growth, rising activity
     with stable multiples, suggesting a constructive entry window.'
     """
     df = detect_sector_imbalances(filters)

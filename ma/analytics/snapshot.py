@@ -1,14 +1,14 @@
 """
-M&A Market Snapshot — strategic analyst-style commentary memo.
+M&A Market Snapshot, strategic analyst-style commentary memo.
 Upgraded from descriptive ("what happened") to strategic ("what it means
 and what to watch").
 
 Sections:
-1. Market Regime — current regime + recent transition
-2. Sector Signals — top sectors with imbalance signals and relative valuation
-3. Sponsor Activity — top sponsors with behavioral context
-4. Valuation Environment — overall market valuation, sponsor vs strategic spread
-5. Watch List — 2-3 things to monitor going forward
+1. Market Regime, current regime + recent transition
+2. Sector Signals, top sectors with imbalance signals and relative valuation
+3. Sponsor Activity, top sponsors with behavioral context
+4. Valuation Environment, overall market valuation, sponsor vs strategic spread
+5. Watch List, 2-3 things to monitor going forward
 
 Max ~400 words per config.yaml snapshot.max_length_words.
 """
@@ -50,7 +50,7 @@ def generate_snapshot(filters: dict = None, config: dict = None) -> str:
         if not years.empty:
             year_range_str = f"{int(years.min())}–{int(years.max())}"
 
-    lines = [f"### M&A Market Snapshot — {year_range_str}", ""]
+    lines = [f"### M&A Market Snapshot, {year_range_str}", ""]
 
     # -------------------------------------------------------------------
     # SECTION 1: Market Regime
@@ -129,7 +129,7 @@ def generate_snapshot(filters: dict = None, config: dict = None) -> str:
 
                 if signal == "Overheating":
                     lines.append(
-                        f"**{sector}** shows late-cycle characteristics — activity up {act:.0f}% "
+                        f"**{sector}** shows late-cycle characteristics, activity up {act:.0f}% "
                         f"with multiples expanding {val_mom:+.0f}%{ev_str} "
                         f"(n={n}, {conf}). "
                         f"Investors entering auction processes here should stress-test under "
@@ -137,7 +137,7 @@ def generate_snapshot(filters: dict = None, config: dict = None) -> str:
                     )
                 else:  # Cooling
                     lines.append(
-                        f"**{sector}** is cooling — activity {act:.0f}% and multiples "
+                        f"**{sector}** is cooling, activity {act:.0f}% and multiples "
                         f"contracting{ev_str} (n={n}, {conf}). "
                         f"Potential relative value window; watch for motivated secondary sellers."
                     )
@@ -151,7 +151,7 @@ def generate_snapshot(filters: dict = None, config: dict = None) -> str:
             from ma.analytics.imbalance import signal_confidence as _sig_conf
             conf = _sig_conf(n)
             lines.append(
-                f"**{sector}** presents a constructive entry profile — rising activity "
+                f"**{sector}** presents a constructive entry profile, rising activity "
                 f"({act:+.0f}%) with contained multiples (n={n}, {conf}), "
                 f"which suggests a healthy demand/price dynamic."
             )
@@ -270,20 +270,20 @@ def generate_snapshot(filters: dict = None, config: dict = None) -> str:
 
     watch_items = []
 
-    # Regime-driven watch item — only include if regime classification is credible
+    # Regime-driven watch item, only include if regime classification is credible
     if current_regime and regime_confidence in ("high confidence", "moderate confidence"):
         r_label = current_regime.get("regime_label", "")
         if r_label == "Peak / Late-Cycle":
             watch_items.append(
-                f"Monitor for multiple compression as credit conditions evolve — exits may face narrower spread vs entry "
+                f"Monitor for multiple compression as credit conditions evolve, exits may face narrower spread vs entry "
                 f"({regime_confidence}, {num_regime_years} years of data)."
             )
         elif r_label == "Trough / Distressed":
-            watch_items.append("Track credit market reopening signals — recovery vintages deploy when deal flow is still thin.")
+            watch_items.append("Track credit market reopening signals, recovery vintages deploy when deal flow is still thin.")
         elif r_label == "Recovery / Opportunity":
-            watch_items.append("Window may be closing — watch for deal count acceleration as a leading indicator that competition is intensifying.")
+            watch_items.append("Window may be closing, watch for deal count acceleration as a leading indicator that competition is intensifying.")
 
-    # Overheating / Cooling sector watch — only if n >= MIN_SAMPLE (moderate or high confidence)
+    # Overheating / Cooling sector watch, only if n >= MIN_SAMPLE (moderate or high confidence)
     if not imbalance_df.empty:
         from ma.analytics.imbalance import signal_confidence as _sig_conf
         credible_signals = imbalance_df[imbalance_df["recent_deal_count"] >= MIN_SAMPLE]
@@ -305,7 +305,7 @@ def generate_snapshot(filters: dict = None, config: dict = None) -> str:
                         if not rel_match.empty:
                             pct = rel_match.iloc[0].get("historical_percentile")
                             if pd.notna(pct):
-                                rel_note = f" — currently at the {pct:.0f}th percentile of its historical range"
+                                rel_note = f", currently at the {pct:.0f}th percentile of its historical range"
                     watch_items.append(
                         f"**{sector}**{rel_note} with {signal_type} signal (n={n}, {conf}): {watch_template}."
                     )
@@ -313,9 +313,9 @@ def generate_snapshot(filters: dict = None, config: dict = None) -> str:
     # Default watch items if none generated from data
     if not watch_items:
         if regime_confidence in ("low confidence", "insufficient data"):
-            watch_items.append("No high-confidence watch items in the current period — expand the date range for more robust signal detection.")
+            watch_items.append("No high-confidence watch items in the current period, expand the date range for more robust signal detection.")
         else:
-            watch_items.append(f"**{most_active_sector}** deal flow concentration — monitor for sector rotation signals.")
+            watch_items.append(f"**{most_active_sector}** deal flow concentration, monitor for sector rotation signals.")
             watch_items.append("Sponsor dry powder deployment pace relative to credit availability.")
 
     for item in watch_items[:3]:

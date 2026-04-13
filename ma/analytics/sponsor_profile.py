@@ -1,12 +1,12 @@
 """
-Sponsor Behavior Profiling — structured behavioral profiles for PE sponsors
+Sponsor Behavior Profiling, structured behavioral profiles for PE sponsors
 with 3+ deals in the dataset.
 
 Financial rationale: sponsor behavior is not random. Thoma Bravo systematically
 targets application software. H&F concentrates in healthcare and financials.
 Identifying a sponsor's valuation stance (premium vs value buyer), sector
 concentration, and deal size preferences reveals persistent investment thesis
-signals — useful for predicting where they will deploy next and how aggressively
+signals, useful for predicting where they will deploy next and how aggressively
 they will compete in auction processes.
 """
 import pandas as pd
@@ -86,7 +86,7 @@ def generate_sponsor_profile(sponsor_name: str, filters: dict = None) -> dict:
     else:
         deal_size_stance = "Broadly Diversified"
 
-    # Regime activity — which regimes is this sponsor most active in?
+    # Regime activity, which regimes is this sponsor most active in?
     activity_regimes: list = []
     if "announcement_year" in df.columns:
         try:
@@ -168,7 +168,7 @@ def sponsor_profile_narrative(
 
     E.g., 'Thoma Bravo is a premium buyer in Technology, systematically paying
     2.1x above market median EV/EBITDA. Active primarily during high-valuation
-    regimes, with average deal size of $3.2B — targeting large-cap software assets
+    regimes, with average deal size of $3.2B, targeting large-cap software assets
     where recurring revenue and switching costs justify elevated entry prices.'
 
     _profile: optionally pass a pre-computed profile dict to avoid re-fetching data.
@@ -201,13 +201,13 @@ def sponsor_profile_narrative(
     elif stance == "Premium Buyer" and premium is not None:
         val_sentence = (
             f"**{name}** is a **premium buyer**, paying an average EV/EBITDA of "
-            f"**{ev:.1f}x** — {premium:+.1f}x above market median "
+            f"**{ev:.1f}x**, {premium:+.1f}x above market median "
             f"(based on {ev_ebitda_count} deals with valuation data)."
         )
     elif stance == "Value Buyer" and premium is not None:
         val_sentence = (
             f"**{name}** is a **value-oriented buyer**, paying an average EV/EBITDA of "
-            f"**{ev:.1f}x** — {premium:+.1f}x versus market median "
+            f"**{ev:.1f}x**, {premium:+.1f}x versus market median "
             f"(based on {ev_ebitda_count} deals with valuation data)."
         )
     elif ev:

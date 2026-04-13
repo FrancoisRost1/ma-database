@@ -1,5 +1,5 @@
 """
-Market activity analytics — deal volume trends, sector heatmaps,
+Market activity analytics, deal volume trends, sector heatmaps,
 sponsor vs strategic mix, and deal status breakdowns.
 Key question: where is buyout activity accelerating or slowing?
 """

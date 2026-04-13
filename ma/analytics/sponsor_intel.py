@@ -1,5 +1,5 @@
 """
-Sponsor intelligence analytics — rankings, sector preferences, entry multiples.
+Sponsor intelligence analytics, rankings, sector preferences, entry multiples.
 Key question: which sponsors are most active, and what do they target?
 Assumption: consortium deals attributed to primary sponsor only (Phase 1).
 """
@@ -36,7 +36,7 @@ def sponsor_sector_heatmap(filters: dict = None, top_n_sponsors: int = 12) -> pd
 
 
 def sponsor_deal_trend(filters: dict = None, top_n_sponsors: int = 5) -> pd.DataFrame:
-    """Annual deal count for top N sponsors — line chart."""
+    """Annual deal count for top N sponsors, line chart."""
     return queries.get_sponsor_deal_trend(filters, top_n_sponsors=top_n_sponsors)
 
 

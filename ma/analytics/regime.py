@@ -1,9 +1,9 @@
 """
-Market Regime Detection Engine — classifies annual M&A market periods based on
+Market Regime Detection Engine, classifies annual M&A market periods based on
 deal activity levels and valuation levels relative to full-period medians.
 
 Financial rationale: market regimes capture the macro context in which deals
-are struck. Entry timing matters — sponsors who deploy in trough/recovery
+are struck. Entry timing matters, sponsors who deploy in trough/recovery
 periods historically generate higher returns than those entering peak regimes.
 Regime awareness also explains why valuation multiples and deal volumes move
 together or diverge (liquidity conditions, credit availability, risk appetite).
@@ -134,28 +134,28 @@ def get_current_regime(filters: dict = None) -> dict:
             f"are characteristic of late-cycle conditions. Sponsor entry risk increases "
             f"as leverage multiples compress returns and exit optionality narrows."
         ) if ev else (
-            "High deal activity with elevated valuations — characteristic of late-cycle conditions."
+            "High deal activity with elevated valuations, characteristic of late-cycle conditions."
         ),
         "Recovery / Opportunity": (
             f"Rising deal activity with contained multiples ({ev:.1f}x median EV/EBITDA) "
             f"signals a recovery window. Credit availability is improving but competition "
-            f"has not yet driven up entry prices — historically the best entry vintage."
+            f"has not yet driven up entry prices, historically the best entry vintage."
         ) if ev else (
-            "Rising activity with below-median valuations — a recovery entry window."
+            "Rising activity with below-median valuations, a recovery entry window."
         ),
         "Selective / Cautious": (
             f"Low deal volume despite elevated multiples ({ev:.1f}x) suggests buyers are "
-            f"being selective — only high-conviction deals pencil at these prices. "
+            f"being selective, only high-conviction deals pencil at these prices. "
             f"Multiple compression risk is elevated for new entrants."
         ) if ev else (
-            "Low volume with high multiples — selective market, multiple compression risk."
+            "Low volume with high multiples, selective market, multiple compression risk."
         ),
         "Trough / Distressed": (
             f"Depressed activity and below-average multiples ({ev:.1f}x) point to a trough. "
             f"Dry powder deployment is constrained by credit conditions or macro uncertainty. "
             f"Historically precedes strong vintage returns for patient capital."
         ) if ev else (
-            "Low activity and low multiples — trough/distressed conditions."
+            "Low activity and low multiples, trough/distressed conditions."
         ),
         "Indeterminate": "Insufficient data to classify regime with confidence.",
     }
@@ -177,7 +177,7 @@ def regime_transition_summary(filters: dict = None) -> str:
     if regime_df.empty or len(regime_df) < 2:
         return ""
 
-    # Find transitions — years where regime label changes
+    # Find transitions, years where regime label changes
     transitions = []
     for i in range(1, len(regime_df)):
         prev = regime_df.iloc[i - 1]
@@ -211,7 +211,7 @@ def regime_transition_summary(filters: dict = None) -> str:
     summary = (
         f"The market transitioned through {' and '.join(parts)}. "
         f"The current regime ({int(latest['year'])}) is classified as "
-        f"**{latest['regime_label']}** — "
+        f"**{latest['regime_label']}**, "
         f"{latest['activity_level'].lower()} with {latest['valuation_level'].lower()}."
     )
     return summary

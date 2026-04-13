@@ -1,5 +1,5 @@
 """
-Relative Valuation Analysis — sector premium/discount vs market, historical
+Relative Valuation Analysis, sector premium/discount vs market, historical
 percentile positioning, and sponsor vs strategic spread by sector.
 
 Financial rationale: absolute EV/EBITDA multiples are less informative than
@@ -100,7 +100,7 @@ def sector_premium_trend(filters: dict = None) -> pd.DataFrame:
     Computes market median per year, then sector median per year, then the spread.
     Returns: year, sector_name, sector_median, market_median, premium_discount
 
-    Useful for detecting valuation regime shifts — e.g., Tech premium expanding
+    Useful for detecting valuation regime shifts, e.g., Tech premium expanding
     during software boom, then compressing post-rate hike.
     """
     df = queries.get_all_deals(filters)
@@ -209,7 +209,7 @@ def relative_valuation_narrative(filters: dict = None) -> str:
     E.g., 'Technology trades at a +2.3x premium to the broader market, at the
     78th percentile of its 10-year range. Sponsors pay 1.1x more than strategics
     in this sector, consistent with competitive software buyout dynamics.
-    Energy trades at a -2.8x discount, at the 24th historical percentile —
+    Energy trades at a -2.8x discount, at the 24th historical percentile,
     suggesting relative value versus the broader M&A market.'
     """
     rel_df = sector_relative_valuation(filters)

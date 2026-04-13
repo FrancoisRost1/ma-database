@@ -1,5 +1,5 @@
 """
-Execution analytics — deal status breakdown, time-to-close, completion rates.
+Execution analytics, deal status breakdown, time-to-close, completion rates.
 Answers: how long do deals take? What share are terminated?
 Assumption: time-to-close = closing_date − announcement_date; no regulatory delay adjustment.
 """

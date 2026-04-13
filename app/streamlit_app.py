@@ -108,7 +108,7 @@ def confidence_badge(n: int) -> str:
 
 
 # ---------------------------------------------------------------------------
-# DB init (cached) — creates schema + seeds from data/raw/real_deals.csv on
+# DB init (cached), creates schema + seeds from data/raw/real_deals.csv on
 # first run. Cold-start safe: on Streamlit Cloud the .duckdb file does not
 # exist in the repo (gitignored), so this block regenerates it end-to-end.
 # ---------------------------------------------------------------------------
@@ -138,7 +138,7 @@ except Exception as exc:  # surface init errors on Streamlit Cloud instead of
 
 
 # ---------------------------------------------------------------------------
-# Cached data fetchers — avoids repeated SELECT * on every render
+# Cached data fetchers, avoids repeated SELECT * on every render
 # ---------------------------------------------------------------------------
 @st.cache_data(ttl=300)
 def _get_all_deals(filter_key: str) -> "pd.DataFrame":
@@ -163,7 +163,7 @@ def _filter_key(f: dict) -> str:
 # ---------------------------------------------------------------------------
 def build_filters() -> dict:
     """Build the global filter dict from sidebar widgets."""
-    # Platform Methodology — collapsible, above filters
+    # Platform Methodology, collapsible, above filters
     with st.sidebar.expander("Platform Methodology", expanded=False):
         st.markdown("""
 **Data Architecture**
@@ -228,7 +228,7 @@ def build_filters() -> dict:
     ))
     geographies = st.sidebar.multiselect("Geography", _all_geos, default=[])
 
-    # Data origin — default to real so first impression shows verified data only
+    # Data origin, default to real so first impression shows verified data only
     data_origin = st.sidebar.radio("Data Origin", ["real", "all", "synthetic"], index=0)
 
     # Deal value range
@@ -696,7 +696,7 @@ with tabs[2]:
             apply_plotly_theme(fig_scatter)
             st.plotly_chart(fig_scatter, use_container_width=True)
 
-        # Signal table — add n (recent deal count) and confidence qualifier
+        # Signal table, add n (recent deal count) and confidence qualifier
         from ma.analytics.imbalance import signal_confidence as _sig_conf
         display_imbalance = imbalance_df[[
             "sector_name", "recent_deal_count", "activity_momentum_pct",

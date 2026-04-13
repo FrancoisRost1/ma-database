@@ -1,5 +1,5 @@
 """
-Valuation analytics — EV/EBITDA and EV/Revenue distributions by sector,
+Valuation analytics, EV/EBITDA and EV/Revenue distributions by sector,
 premium analysis for public targets, and valuation regime shifts over time.
 Key question: which sectors trade at highest multiples, and are they expanding?
 """
@@ -10,7 +10,7 @@ from ma.db import queries
 
 def ev_ebitda_by_sector(filters: dict = None) -> pd.DataFrame:
     """
-    EV/EBITDA distribution by sector — used for box plots.
+    EV/EBITDA distribution by sector, used for box plots.
     Returns raw observation-level data (each row = one deal).
     """
     df = queries.get_ev_ebitda_by_sector(filters)
