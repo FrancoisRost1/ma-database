@@ -1,7 +1,6 @@
 """
-M&A Database Dashboard — Bloomberg dark mode, 6 tabs, global sidebar filters.
-Consistent with lbo-engine and pe-target-screener visual style.
-All charts use Plotly dark template. No 3D, no decorative elements.
+M&A Database Dashboard. Six tabs, global sidebar filters.
+Uses the finance-lab design system (style_inject + apply_plotly_theme).
 """
 import os
 import sys
@@ -36,6 +35,10 @@ from ma.ingest.csv_import import preview_csv, import_csv
 from ma.export.csv_export import export_deals_csv
 from ma.export.excel_export import export_deals_excel
 from ma.utils.formatting import fmt_currency, fmt_multiple, fmt_pct, quality_label, quality_color
+from style_inject import (
+    inject_styles, styled_header, styled_kpi, styled_card,
+    styled_divider, styled_section_label, apply_plotly_theme, TOKENS,
+)
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -46,72 +49,48 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-# Bloomberg dark CSS
-st.markdown("""
-<style>
-    .main { background-color: #0A0A0A; }
-    .stApp { background-color: #0A0A0A; color: #E8E8E8; }
-    .metric-card {
-        background: #1A1A2E; border: 1px solid #00D4AA;
-        border-radius: 8px; padding: 16px; margin: 4px;
-    }
-    .metric-value { font-size: 28px; font-weight: 700; color: #00D4AA; }
-    .metric-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-    .snapshot-box {
-        background: #111; border-left: 3px solid #00D4AA;
-        padding: 16px; border-radius: 4px; margin: 12px 0;
-    }
-    .synthetic-badge {
-        background: #3D2B1F; color: #F0B27A; padding: 2px 8px;
-        border-radius: 4px; font-size: 11px;
-    }
-    h1, h2, h3 { color: #E8E8E8; }
-    .stSelectbox, .stMultiSelect { color: #E8E8E8; }
-    /* Force transparent backgrounds on all Plotly charts */
-    .js-plotly-plot .plotly .main-svg { background: transparent !important; }
-    .js-plotly-plot .plotly .bg { fill: transparent !important; }
-</style>
-""", unsafe_allow_html=True)
+inject_styles()
 
 CONFIG = load_config("config.yaml")
-TEMPLATE = CONFIG["dashboard"]["plotly_template"]
 COLORS = CONFIG["dashboard"]["chart_color_palette"]
 H = CONFIG["dashboard"]["chart_height"]
 
 # ---------------------------------------------------------------------------
-# Semantic color system — consistent across all signals, regimes, quality tiers
+# Semantic color system. Consistent across signals, regimes, quality tiers.
 # ---------------------------------------------------------------------------
 MIN_SAMPLE = 3  # Minimum deal count for a credible signal/classification
-DARK_BG = dict(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
 
 SIGNAL_COLORS = {
-    "Overheating":       "#FF6B6B",
-    "Narrowing":         "#F0B27A",
-    "Healthy Growth":    "#00D4AA",
-    "Cooling":           "#45B7D1",
-    "Insufficient Data": "#888888",
+    "Overheating":       TOKENS["accent_danger"],
+    "Narrowing":         TOKENS["accent_warning"],
+    "Healthy Growth":    TOKENS["accent_primary"],
+    "Cooling":           TOKENS["accent_info"],
+    "Insufficient Data": TOKENS["text_secondary"],
 }
 REGIME_COLORS = {
-    "Peak / Late-Cycle":      "#FF6B6B",
-    "Recovery / Opportunity": "#00D4AA",
-    "Selective / Cautious":   "#F0B27A",
-    "Trough / Distressed":    "#45B7D1",
-    "Indeterminate":          "#888888",
+    "Peak / Late-Cycle":      TOKENS["accent_danger"],
+    "Recovery / Opportunity": TOKENS["accent_primary"],
+    "Selective / Cautious":   TOKENS["accent_warning"],
+    "Trough / Distressed":    TOKENS["accent_info"],
+    "Indeterminate":          TOKENS["text_secondary"],
 }
-COMPLETENESS_COLORS = {"High": "#00D4AA", "Medium": "#F7DC6F", "Low": "#FF6B6B"}
+COMPLETENESS_COLORS = {
+    "High":   TOKENS["accent_primary"],
+    "Medium": TOKENS["accent_warning"],
+    "Low":    TOKENS["accent_danger"],
+}
 CONFIDENCE_COLORS = {
-    "high confidence":    "#00D4AA",
-    "moderate confidence":"#F7DC6F",
-    "low confidence":     "#F0B27A",
-    "insufficient data":  "#888888",
+    "high confidence":    TOKENS["accent_primary"],
+    "moderate confidence":TOKENS["accent_warning"],
+    "low confidence":     TOKENS["accent_warning"],
+    "insufficient data":  TOKENS["text_secondary"],
 }
 STANCE_COLORS = {
-    "Premium Buyer":               "#FF6B6B",
-    "Value Buyer":                 "#00D4AA",
-    "Market Buyer":                "#888888",
-    "Unknown":                     "#888888",
-    "Insufficient valuation data": "#888888",
+    "Premium Buyer":               TOKENS["accent_danger"],
+    "Value Buyer":                 TOKENS["accent_primary"],
+    "Market Buyer":                TOKENS["text_secondary"],
+    "Unknown":                     TOKENS["text_secondary"],
+    "Insufficient valuation data": TOKENS["text_secondary"],
 }
 
 
@@ -207,7 +186,8 @@ def build_filters() -> dict:
 - Market imbalance detection (activity × valuation momentum signals)
 """)
 
-    st.sidebar.markdown("## Filters")
+    with st.sidebar:
+        styled_section_label("FILTERS")
 
     # Date range
     year_start, year_end = st.sidebar.slider(
@@ -289,14 +269,16 @@ filters = build_filters()
 # ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
-st.markdown("# M&A Database and Analysis Tool")
-st.markdown("Institutional M&A intelligence: valuations, sponsor behavior, and market activity trends.")
-st.divider()
+styled_header(
+    "M&A Database and Analysis Tool",
+    "Valuations | Sponsor Behavior | Market Activity Trends",
+)
+styled_divider()
 
 # ---------------------------------------------------------------------------
 # Tabs
 # ---------------------------------------------------------------------------
-tabs = st.tabs(["Overview", "Valuation", "Market Activity", "Sponsor Intelligence", "Deal Explorer", "Data Management"])
+tabs = st.tabs(["OVERVIEW", "VALUATION", "MARKET", "SPONSORS", "DEALS", "DATA"])
 
 # ===========================================================================
 # TAB 1: OVERVIEW
@@ -307,31 +289,24 @@ with tabs[0]:
     if not kpis:
         st.warning("No deals match the current filters.")
     else:
-        # KPI row — two rows of 4
-        def kpi(col, label, value):
-            col.markdown(f"""<div class="metric-card">
-                <div class="metric-value">{value}</div>
-                <div class="metric-label">{label}</div>
-            </div>""", unsafe_allow_html=True)
-
         c1, c2, c3, c4 = st.columns(4)
-        kpi(c1, "Total Deals", f"{kpis.get('total_deals', 0):,}")
-        kpi(c2, "Total Deal Value", fmt_currency(kpis.get("total_deal_value_usd"), decimals=1, suffix="B"))
+        with c1: styled_kpi("TOTAL DEALS", f"{kpis.get('total_deals', 0):,}")
+        with c2: styled_kpi("TOTAL VALUE", fmt_currency(kpis.get("total_deal_value_usd"), decimals=1, suffix="B"))
         total = kpis.get("total_deals", 1) or 1
         sp_pct = kpis.get("sponsor_deal_count", 0) / total * 100
         st_pct = kpis.get("strategic_deal_count", 0) / total * 100
-        kpi(c3, "Sponsor / Strategic Split", f"{sp_pct:.0f}% / {st_pct:.0f}%")
-        kpi(c4, "Median EV/EBITDA", fmt_multiple(kpis.get("median_ev_to_ebitda")))
+        with c3: styled_kpi("SPONSOR / STRATEGIC", f"{sp_pct:.0f}% / {st_pct:.0f}%")
+        with c4: styled_kpi("MEDIAN EV/EBITDA", fmt_multiple(kpis.get("median_ev_to_ebitda")))
 
         c5, c6, c7, c8 = st.columns(4)
-        kpi(c5, "Sponsor Deals", f"{kpis.get('sponsor_deal_count', 0):,}")
-        kpi(c6, "Strategic Deals", f"{kpis.get('strategic_deal_count', 0):,}")
-        kpi(c7, "Most Active Sector", kpis.get("most_active_sector", "N/A"))
-        kpi(c8, "Most Active Sponsor", kpis.get("most_active_sponsor", "N/A"))
+        with c5: styled_kpi("SPONSOR DEALS", f"{kpis.get('sponsor_deal_count', 0):,}")
+        with c6: styled_kpi("STRATEGIC DEALS", f"{kpis.get('strategic_deal_count', 0):,}")
+        with c7: styled_kpi("TOP SECTOR", kpis.get("most_active_sector", "n/a"))
+        with c8: styled_kpi("TOP SPONSOR", kpis.get("most_active_sponsor", "n/a"))
 
-        # Data Composition block — makes real/synthetic separation immediately visible
-        st.markdown("---")
-        st.markdown("#### Data Composition")
+        # Data Composition block. Makes real/synthetic separation visible.
+        styled_divider()
+        styled_section_label("DATA COMPOSITION")
         _real_n = kpis.get("real_deals", 0)
         _synth_n = kpis.get("synthetic_deals", 0)
         _total_n = kpis.get("total_deals", 1) or 1
@@ -339,112 +314,101 @@ with tabs[0]:
         _synth_pct = _synth_n / _total_n * 100
 
         dc1, dc2, dc3 = st.columns(3)
-        dc1.metric("Real Deals", f"{_real_n:,}", f"{_real_pct:.0f}% of universe")
-        dc2.metric("Synthetic Deals", f"{_synth_n:,}", f"{_synth_pct:.0f}% of universe")
-        dc3.metric("Combined Universe", f"{_total_n:,}", "All deal records")
+        with dc1: styled_kpi("REAL DEALS", f"{_real_n:,}", delta=f"{_real_pct:.0f}% of universe", delta_color=TOKENS["text_secondary"])
+        with dc2: styled_kpi("SYNTHETIC DEALS", f"{_synth_n:,}", delta=f"{_synth_pct:.0f}% of universe", delta_color=TOKENS["text_secondary"])
+        with dc3: styled_kpi("COMBINED", f"{_total_n:,}", delta="All records", delta_color=TOKENS["text_secondary"])
         st.caption(
-            "Data origin is controlled via the sidebar filter. "
-            "Analytics default to **real transactions only**: use 'all' to include the synthetic extension layer."
+            "Data origin controlled via the sidebar filter. "
+            "Analytics default to real transactions only. Use 'all' to include the synthetic extension layer."
         )
 
-        st.markdown("---")
+        styled_divider()
 
         col1, col2 = st.columns(2)
 
         with col1:
-            # Deal count over time
             cnt_df = queries.get_deal_count_by_year(filters)
             if not cnt_df.empty:
-                fig = px.line(cnt_df, x="year", y="deal_count",
-                              title="Deal Count Over Time",
-                              template=TEMPLATE, color_discrete_sequence=COLORS)
-                fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deals", **DARK_BG)
+                fig = px.line(cnt_df, x="year", y="deal_count", title="Deal Count Over Time")
+                fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Count")
+                apply_plotly_theme(fig)
                 st.plotly_chart(fig, use_container_width=True)
 
         with col2:
-            # Deal type distribution
             dt_df = queries.get_deal_type_distribution(filters)
             if not dt_df.empty:
                 fig = px.pie(dt_df, names="deal_type", values="deal_count",
-                             title="Deal Type Distribution",
-                             template=TEMPLATE, color_discrete_sequence=COLORS, hole=0.4)
-                fig.update_layout(height=H, **DARK_BG)
+                             title="Deal Type Distribution", hole=0.65)
+                fig.update_layout(height=H)
+                apply_plotly_theme(fig)
                 st.plotly_chart(fig, use_container_width=True)
 
         col3, col4 = st.columns(2)
 
         with col3:
-            # Top sectors
             sec_df = queries.get_deal_count_by_sector(filters, top_n=10)
             if not sec_df.empty:
                 fig = px.bar(sec_df.sort_values("deal_count"), x="deal_count", y="sector_name",
-                             orientation="h", title="Top 10 Sectors by Deal Count",
-                             template=TEMPLATE, color_discrete_sequence=COLORS)
-                fig.update_layout(height=H, xaxis_title="Deals", yaxis_title="", **DARK_BG)
+                             orientation="h", title="Top 10 Sectors by Deal Count")
+                fig.update_layout(height=H, xaxis_title="Deal Count", yaxis_title="")
+                apply_plotly_theme(fig)
                 st.plotly_chart(fig, use_container_width=True)
 
         with col4:
-            # Top acquirers
             acq_df = queries.get_deal_count_by_acquirer(filters, top_n=10)
             if not acq_df.empty:
                 fig = px.bar(acq_df.sort_values("deal_count"), x="deal_count", y="acquirer_name",
                              orientation="h", title="Top 10 Acquirers by Deal Count",
-                             color="acquirer_type",
-                             template=TEMPLATE, color_discrete_sequence=COLORS)
-                fig.update_layout(height=H, xaxis_title="Deals", yaxis_title="", **DARK_BG)
+                             color="acquirer_type")
+                fig.update_layout(height=H, xaxis_title="Deal Count", yaxis_title="")
+                apply_plotly_theme(fig)
                 st.plotly_chart(fig, use_container_width=True)
 
         # Market Regime Section
-        st.markdown("### Market Regime")
+        styled_section_label("MARKET REGIME")
         regime_df = regime_mod.classify_regimes(filters)
         current_regime = regime_mod.get_current_regime(filters)
 
         if not regime_df.empty:
-            regime_df["color"] = regime_df["regime_label"].map(REGIME_COLORS).fillna("#888888")
+            regime_df["color"] = regime_df["regime_label"].map(REGIME_COLORS).fillna(TOKENS["text_secondary"])
 
             col_regime1, col_regime2 = st.columns([2, 1])
             with col_regime1:
-                # Regime timeline: colored bar chart
                 fig_regime = px.bar(
                     regime_df, x="year", y="deal_count",
                     color="regime_label",
                     color_discrete_map=REGIME_COLORS,
-                    title="Market Regime Timeline (Annual Deal Activity, colored by Regime)",
-                    template=TEMPLATE,
+                    title="Market Regime Timeline (Annual Deal Count by Regime)",
                     labels={"deal_count": "Deal Count", "year": "Year", "regime_label": "Regime"},
                 )
-                fig_regime.update_layout(height=380, legend_title="Regime", **DARK_BG)
+                fig_regime.update_layout(height=380, legend_title="Regime")
+                apply_plotly_theme(fig_regime)
                 st.plotly_chart(fig_regime, use_container_width=True)
 
             with col_regime2:
                 if current_regime:
-                    label = current_regime.get("regime_label", "N/A")
-                    year = current_regime.get("year", "N/A")
+                    label = current_regime.get("regime_label", "n/a")
+                    year = current_regime.get("year", "n/a")
                     explanation = current_regime.get("explanation", "")
-                    color = REGIME_COLORS.get(label, "#888888")
-                    st.markdown(f"""
-                    <div style="background:#1A1A2E; border-left: 4px solid {color};
-                         padding:16px; border-radius:4px; margin-top:8px;">
-                        <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:1px;">
-                            Current Regime ({year})</div>
-                        <div style="font-size:22px; font-weight:700; color:{color}; margin:8px 0;">
-                            {label}</div>
-                        <div style="font-size:13px; color:#CCC; line-height:1.5;">
-                            {explanation}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    color = REGIME_COLORS.get(label, TOKENS["text_secondary"])
+                    styled_card(
+                        f'<div style="font-size:0.65rem; color:{TOKENS["text_muted"]}; text-transform:uppercase; letter-spacing:0.1em; font-weight:600;">'
+                        f'CURRENT REGIME ({year})</div>'
+                        f'<div style="font-size:1.25rem; font-weight:600; color:{color}; margin:0.4rem 0; font-family:{TOKENS["font_display"]};">{label}</div>'
+                        f'<div style="font-size:0.8rem; color:{TOKENS["text_secondary"]}; line-height:1.5;">{explanation}</div>',
+                        accent_color=color,
+                    )
                     transition = regime_mod.regime_transition_summary(filters)
                     if transition:
-                        st.markdown(f"<div style='margin-top:12px; font-size:13px; color:#AAA;'>{transition}</div>",
-                                    unsafe_allow_html=True)
+                        st.caption(transition)
 
-        st.markdown("---")
+        styled_divider()
 
         # M&A Market Snapshot
-        st.markdown("### M&A Market Snapshot")
-        with st.expander("View auto-generated analyst memo", expanded=True):
+        styled_section_label("M&A MARKET SNAPSHOT")
+        with st.expander("Auto-generated analyst memo", expanded=True):
             memo = snapshot.generate_snapshot(filters, CONFIG)
-            st.markdown(f'<div class="snapshot-box">{memo}</div>', unsafe_allow_html=True)
+            styled_card(memo, accent_color=TOKENS["accent_primary"])
 
         # Real vs synthetic composition callout
         audit_df = queries.get_data_origin_audit()
@@ -452,18 +416,18 @@ with tabs[0]:
             audit_map = {r["data_origin"]: r["deal_count"] for r in audit_df.to_dict("records")}
             real_n = audit_map.get("real", 0)
             syn_n = audit_map.get("synthetic", 0)
-            st.caption(f"Data composition: {real_n} verified real deals · {syn_n} synthetic extension · "
-                       f"Use the **Data Origin** filter to view real-only.")
+            st.caption(f"Data composition: {real_n} verified real deals | {syn_n} synthetic extension. "
+                       f"Use the Data Origin filter to view real only.")
 
 
 # ===========================================================================
 # TAB 2: VALUATION
 # ===========================================================================
 with tabs[1]:
-    st.markdown("### Valuation Analysis")
+    styled_section_label("VALUATION ANALYSIS")
     st.caption("Sector multiples, premium dynamics, and valuation regime shifts.")
 
-    # EV/EBITDA box plot — filter sectors with < MIN_SAMPLE valid observations
+    # EV/EBITDA box plot. Full-width primary chart.
     ev_df = valuation.ev_ebitda_by_sector(filters)
     if not ev_df.empty:
         _ev_counts = ev_df.groupby("sector_name")["ev_to_ebitda"].count()
@@ -473,23 +437,22 @@ with tabs[1]:
         ev_df_f = ev_df[ev_df["sector_name"].isin(_ev_included)]
         if not ev_df_f.empty:
             fig = px.box(ev_df_f, x="sector_name", y="ev_to_ebitda",
-                         title="EV/EBITDA Distribution by Sector",
-                         template=TEMPLATE, color_discrete_sequence=COLORS)
+                         title="EV/EBITDA Distribution by Sector")
             fig.update_layout(height=H, xaxis_title="Sector", yaxis_title="EV/EBITDA (x)",
-                              xaxis_tickangle=-30, **DARK_BG)
+                              xaxis_tickangle=-30)
+            apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
             captions = []
             if _ev_excluded:
                 captions.append(f"Excluded (< {MIN_SAMPLE} obs): {', '.join(_ev_excluded)}.")
             if _ev_caution:
-                captions.append(f"Interpret with caution (3-5 obs): {', '.join(_ev_caution)}.")
+                captions.append(f"Interpret with caution (3 to 5 obs): {', '.join(_ev_caution)}.")
             if captions:
                 st.caption(" ".join(captions))
 
     col1, col2 = st.columns(2)
 
     with col1:
-        # EV/Revenue box plot — same MIN_SAMPLE filter
         rev_df = valuation.ev_revenue_by_sector(filters)
         if not rev_df.empty:
             _rev_counts = rev_df.groupby("sector_name")["ev_to_revenue"].count()
@@ -498,59 +461,52 @@ with tabs[1]:
             rev_df_f = rev_df[rev_df["sector_name"].isin(_rev_included)]
             if not rev_df_f.empty:
                 fig = px.box(rev_df_f, x="sector_name", y="ev_to_revenue",
-                             title="EV/Revenue Distribution by Sector",
-                             template=TEMPLATE, color_discrete_sequence=COLORS)
+                             title="EV/Revenue Distribution by Sector")
                 fig.update_layout(height=H, xaxis_tickangle=-30, xaxis_title="Sector",
-                                  yaxis_title="EV/Revenue (x)", **DARK_BG)
+                                  yaxis_title="EV/Revenue (x)")
+                apply_plotly_theme(fig)
                 st.plotly_chart(fig, use_container_width=True)
                 if _rev_excluded:
                     st.caption(f"Excluded (< {MIN_SAMPLE} obs): {', '.join(_rev_excluded)}.")
 
     with col2:
-        # Premium paid histogram
         prem_df = valuation.premium_distribution(filters)
         if not prem_df.empty:
             fig = px.histogram(prem_df, x="premium_paid_pct",
-                               title="Premium Paid % Distribution (Public Targets)",
-                               template=TEMPLATE, color_discrete_sequence=COLORS,
+                               title="Premium Paid Distribution (Public Targets)",
                                nbins=30)
-            fig.update_layout(height=H, xaxis_title="Premium Paid (%)", yaxis_title="Count",
-                              **DARK_BG)
+            fig.update_layout(height=H, xaxis_title="Premium Paid (%)", yaxis_title="Deal Count")
+            apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
 
-    # Median EV/EBITDA over time (valuation regime)
     regime_df = valuation.median_ev_ebitda_by_sector_year(filters)
     if not regime_df.empty:
         fig = px.line(regime_df, x="year", y="median_ev_to_ebitda", color="sector_name",
-                      title="Median EV/EBITDA Over Time by Sector (Valuation Regime Shifts)",
-                      template=TEMPLATE, color_discrete_sequence=COLORS)
-        fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Median EV/EBITDA (x)",
-                          **DARK_BG)
+                      title="Median EV/EBITDA Over Time by Sector")
+        fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Median EV/EBITDA (x)")
+        apply_plotly_theme(fig)
         st.plotly_chart(fig, use_container_width=True)
 
-    # Sponsor vs strategic multiples
     spvs = valuation.sponsor_vs_strategic_multiples(filters)
     if not spvs.empty:
         fig = px.bar(spvs, x="acquirer_type", y=["avg_ev_to_ebitda", "median_ev_to_ebitda"],
                      barmode="group",
-                     title="Sponsor vs. Strategic: Entry EV/EBITDA Comparison",
-                     template=TEMPLATE, color_discrete_sequence=COLORS)
-        fig.update_layout(height=400, xaxis_title="Acquirer Type", yaxis_title="EV/EBITDA (x)",
-                          **DARK_BG)
+                     title="Sponsor vs Strategic Entry EV/EBITDA")
+        fig.update_layout(height=320, xaxis_title="Acquirer Type", yaxis_title="EV/EBITDA (x)")
+        apply_plotly_theme(fig)
         st.plotly_chart(fig, use_container_width=True)
 
-    # Valuation stats table
     stats = valuation.sector_valuation_stats(filters)
     if not stats.empty:
-        st.markdown("#### EV/EBITDA Summary Statistics by Sector")
-        st.dataframe(stats.style.format({
-            "median": "{:.1f}x", "mean": "{:.1f}x", "p25": "{:.1f}x", "p75": "{:.1f}x"
-        }), use_container_width=True)
+        with st.expander("EV/EBITDA Summary Statistics by Sector", expanded=False):
+            st.dataframe(stats.style.format({
+                "median": "{:.1f}x", "mean": "{:.1f}x", "p25": "{:.1f}x", "p75": "{:.1f}x"
+            }), use_container_width=True)
 
-    # --- Relative Valuation Section ---
-    st.markdown("---")
-    st.markdown("### Relative Valuation Analysis")
-    st.caption("Sector premium/discount vs market median, historical percentile positioning, and sponsor vs strategic spread.")
+    # Relative Valuation Section
+    styled_divider()
+    styled_section_label("RELATIVE VALUATION")
+    st.caption("Sector premium / discount vs market median, historical percentile, and sponsor vs strategic spread.")
 
     rel_df = rel_val_mod.sector_relative_valuation(filters)
 
@@ -559,27 +515,25 @@ with tabs[1]:
         col_rel1, col_rel2 = st.columns(2)
 
         with col_rel1:
-            # Horizontal bar: sector premium/discount vs market
             fig_rel = px.bar(
                 rel_df.sort_values("premium_discount"),
                 x="premium_discount", y="sector_name",
                 orientation="h",
                 color="premium_discount",
-                color_continuous_scale=["#FF6B6B", "#444", "#00D4AA"],
+                color_continuous_scale=[TOKENS["accent_danger"], TOKENS["bg_elevated"], TOKENS["accent_primary"]],
                 color_continuous_midpoint=0,
                 title="Sector EV/EBITDA Premium / Discount vs Market",
-                template=TEMPLATE,
-                labels={"premium_discount": "Premium/Discount (x)", "sector_name": ""},
+                labels={"premium_discount": "Premium / Discount (x)", "sector_name": ""},
                 text="premium_discount",
             )
             fig_rel.update_traces(texttemplate="%{text:+.1f}x", textposition="outside")
             fig_rel.update_layout(height=H, coloraxis_showscale=False,
-                                  xaxis_title="vs Market Median (x)", **DARK_BG)
+                                  xaxis_title="vs Market Median (x)")
+            apply_plotly_theme(fig_rel)
             st.plotly_chart(fig_rel, use_container_width=True)
-            st.caption(f"Only sectors with ≥ {MIN_SAMPLE} valid EV/EBITDA observations shown.")
+            st.caption(f"Only sectors with at least {MIN_SAMPLE} valid EV/EBITDA observations shown.")
 
         with col_rel2:
-            # Historical percentile bar
             rel_pct_df = rel_df.dropna(subset=["historical_percentile"]).sort_values("historical_percentile", ascending=False)
             if not rel_pct_df.empty:
                 fig_pct = px.bar(
@@ -587,20 +541,19 @@ with tabs[1]:
                     x="historical_percentile", y="sector_name",
                     orientation="h",
                     color="historical_percentile",
-                    color_continuous_scale=["#00D4AA", "#F7DC6F", "#FF6B6B"],
+                    color_continuous_scale=[TOKENS["accent_primary"], TOKENS["accent_warning"], TOKENS["accent_danger"]],
                     color_continuous_midpoint=50,
                     title="Sector EV/EBITDA Historical Percentile",
-                    template=TEMPLATE,
                     labels={"historical_percentile": "Percentile", "sector_name": ""},
                     text="historical_percentile",
                 )
                 fig_pct.update_traces(texttemplate="%{text:.0f}th", textposition="outside")
                 fig_pct.update_layout(height=H, coloraxis_showscale=False,
-                                      xaxis_title="Historical Percentile (0-100th)", **DARK_BG)
+                                      xaxis_title="Historical Percentile (0 to 100th)")
+                apply_plotly_theme(fig_pct)
                 st.plotly_chart(fig_pct, use_container_width=True)
-                st.caption(f"Only sectors with ≥ {MIN_SAMPLE} valid observations shown.")
+                st.caption(f"Only sectors with at least {MIN_SAMPLE} valid observations shown.")
 
-        # Sponsor vs strategic spread by sector
         sv_df = rel_val_mod.sponsor_vs_strategic_premium(filters)
         if not sv_df.empty:
             fig_sv = px.bar(
@@ -608,25 +561,23 @@ with tabs[1]:
                 x="spread", y="sector_name",
                 orientation="h",
                 color="spread",
-                color_continuous_scale=["#45B7D1", "#444", "#00D4AA"],
+                color_continuous_scale=[TOKENS["accent_info"], TOKENS["bg_elevated"], TOKENS["accent_primary"]],
                 color_continuous_midpoint=0,
-                title="Sponsor vs. Strategic Entry Premium by Sector (Spread in EV/EBITDA x)",
-                template=TEMPLATE,
-                labels={"spread": "Sponsor − Strategic (x)", "sector_name": ""},
+                title="Sponsor vs Strategic Entry Premium by Sector (EV/EBITDA Spread)",
+                labels={"spread": "Sponsor minus Strategic (x)", "sector_name": ""},
                 text="spread",
             )
             fig_sv.update_traces(texttemplate="%{text:+.1f}x", textposition="outside")
-            fig_sv.update_layout(height=H, coloraxis_showscale=False, **DARK_BG)
+            fig_sv.update_layout(height=H, coloraxis_showscale=False,
+                                 xaxis_title="Spread (x)")
+            apply_plotly_theme(fig_sv)
             st.plotly_chart(fig_sv, use_container_width=True)
-            st.caption(f"Only sectors where both sponsor and strategic have ≥ {MIN_SAMPLE} deals with valid EV/EBITDA.")
+            st.caption(f"Only sectors where both sponsor and strategic have at least {MIN_SAMPLE} deals with valid EV/EBITDA.")
 
-        # Relative valuation narrative
         narrative = rel_val_mod.relative_valuation_narrative(filters)
         if narrative:
-            st.markdown(f'<div class="snapshot-box" style="border-left-color: #45B7D1;">{narrative}</div>',
-                        unsafe_allow_html=True)
+            styled_card(narrative, accent_color=TOKENS["accent_info"])
 
-        # Full relative valuation table
         with st.expander("Relative Valuation Detail Table"):
             display_rel = rel_df[["sector_name", "deal_count", "sector_median",
                                    "market_median", "premium_discount",
@@ -636,14 +587,14 @@ with tabs[1]:
                 "market_median": "{:.1f}x",
                 "premium_discount": "{:+.1f}x",
                 "historical_percentile": "{:.0f}th",
-            }, na_rep="N/A"), use_container_width=True)
+            }, na_rep="n/a"), use_container_width=True)
 
 
 # ===========================================================================
 # TAB 3: MARKET ACTIVITY
 # ===========================================================================
 with tabs[2]:
-    st.markdown("### Market Activity")
+    styled_section_label("MARKET ACTIVITY")
     st.caption("Volume trends, sector heatmaps, sponsor vs strategic mix.")
 
     col1, col2 = st.columns(2)
@@ -651,23 +602,21 @@ with tabs[2]:
     with col1:
         cnt_df = market_activity.deal_count_over_time(filters)
         if not cnt_df.empty:
-            fig = px.area(cnt_df, x="year", y="deal_count",
-                          title="Annual Deal Count",
-                          template=TEMPLATE, color_discrete_sequence=COLORS)
-            fig.update_layout(height=H, **DARK_BG)
+            fig = px.area(cnt_df, x="year", y="deal_count", title="Annual Deal Count")
+            fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Count")
+            apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
 
     with col2:
         val_df = market_activity.deal_value_over_time(filters)
         if not val_df.empty:
             val_df["total_value_B"] = val_df["total_value_usd"] / 1000
-            fig = px.area(val_df, x="year", y="total_value_B",
-                          title="Annual Deal Value ($B)",
-                          template=TEMPLATE, color_discrete_sequence=[COLORS[1]])
-            fig.update_layout(height=H, yaxis_title="Deal Value ($B)", **DARK_BG)
+            fig = px.area(val_df, x="year", y="total_value_B", title="Annual Deal Value")
+            fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Value ($B)")
+            apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
 
-    # Sector heatmap
+    # Full-width sector heatmap
     heatmap_df = market_activity.sector_activity_heatmap(filters)
     if not heatmap_df.empty and "sector_name" in heatmap_df.columns:
         year_cols = [c for c in heatmap_df.columns if str(c).isdigit() or (isinstance(c, (int, float)))]
@@ -677,54 +626,49 @@ with tabs[2]:
                 z=z,
                 x=[str(int(c)) for c in year_cols],
                 y=heatmap_df["sector_name"].tolist(),
-                colorscale="Teal",
+                colorscale=[[0.0, TOKENS["bg_elevated"]], [1.0, TOKENS["accent_primary"]]],
                 showscale=True,
             ))
             fig.update_layout(title="Sector Activity Heatmap (Deal Count by Year)",
-                              template=TEMPLATE, height=H + 100,
-                              xaxis_title="Year", yaxis_title="Sector", **DARK_BG)
+                              height=H + 100, xaxis_title="Year", yaxis_title="Sector")
+            apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
 
     col3, col4 = st.columns(2)
 
     with col3:
-        # Sponsor vs strategic trend
         svs_df = market_activity.sponsor_vs_strategic_trend(filters)
         if not svs_df.empty:
             fig = px.bar(svs_df, x="year", y="deal_count", color="acquirer_type",
-                         barmode="stack",
-                         title="Sponsor vs. Strategic Activity Over Time",
-                         template=TEMPLATE, color_discrete_sequence=COLORS)
-            fig.update_layout(height=H, yaxis_title="Deal Count", **DARK_BG)
+                         barmode="stack", title="Sponsor vs Strategic Activity Over Time")
+            fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Count")
+            apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
 
     with col4:
-        # Deal status breakdown
         status_df = market_activity.deal_status_breakdown(filters)
         if not status_df.empty:
             fig = px.bar(status_df, x="year", y="deal_count", color="deal_status",
-                         barmode="stack",
-                         title="Deal Status Breakdown Over Time",
-                         template=TEMPLATE, color_discrete_sequence=COLORS)
-            fig.update_layout(height=H, yaxis_title="Deal Count", **DARK_BG)
+                         barmode="stack", title="Deal Status Breakdown Over Time")
+            fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Count")
+            apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
 
-    # Sector value treemap
     tree_df = market_activity.sector_value_treemap(filters)
     if not tree_df.empty and "total_value_usd" in tree_df.columns:
-        fig = px.treemap(tree_df, path=["sector_name"], values="total_value_usd",
-                         title="Deal Value by Sector (Treemap)",
-                         template=TEMPLATE, color_discrete_sequence=COLORS)
-        fig.update_layout(height=500, **DARK_BG)
-        st.plotly_chart(fig, use_container_width=True)
+        with st.expander("Deal Value by Sector (Treemap)", expanded=False):
+            fig = px.treemap(tree_df, path=["sector_name"], values="total_value_usd",
+                             title="Deal Value by Sector ($M)")
+            fig.update_layout(height=480)
+            apply_plotly_theme(fig)
+            st.plotly_chart(fig, use_container_width=True)
 
-    # --- Market Signals Section ---
-    st.markdown("---")
-    st.markdown("### Market Signals: Sector Imbalance Detection")
+    # Market Signals Section
+    styled_divider()
+    styled_section_label("MARKET SIGNALS | SECTOR IMBALANCE")
     st.caption(
         "Activity momentum vs valuation momentum by sector. "
-        "Each sector is classified into one of four quadrants: "
-        "Overheating, Healthy Growth, Narrowing, or Cooling."
+        "Each sector is classified into one of four quadrants: Overheating, Healthy Growth, Narrowing, or Cooling."
     )
 
     imbalance_df = imbalance_mod.detect_sector_imbalances(filters)
@@ -739,17 +683,17 @@ with tabs[2]:
                 color="signal",
                 color_discrete_map=SIGNAL_COLORS,
                 text="sector_name",
-                title="Sector Quadrant Chart: Activity Momentum vs Valuation Momentum",
-                template=TEMPLATE,
+                title="Sector Quadrant | Activity Momentum vs Valuation Momentum",
                 labels={
                     "activity_momentum_pct": "Activity Momentum (% change in deal count)",
                     "valuation_momentum_pct": "Valuation Momentum (% change in EV/EBITDA)",
                 },
             )
-            fig_scatter.update_traces(textposition="top center", marker=dict(size=14))
-            fig_scatter.add_hline(y=0, line_dash="dash", line_color="#555", line_width=1)
-            fig_scatter.add_vline(x=0, line_dash="dash", line_color="#555", line_width=1)
-            fig_scatter.update_layout(height=520, **DARK_BG)
+            fig_scatter.update_traces(textposition="top center", marker=dict(size=12))
+            fig_scatter.add_hline(y=0, line_dash="dash", line_color=TOKENS["text_muted"], line_width=1)
+            fig_scatter.add_vline(x=0, line_dash="dash", line_color=TOKENS["text_muted"], line_width=1)
+            fig_scatter.update_layout(height=480)
+            apply_plotly_theme(fig_scatter)
             st.plotly_chart(fig_scatter, use_container_width=True)
 
         # Signal table — add n (recent deal count) and confidence qualifier
@@ -765,10 +709,10 @@ with tabs[2]:
         ]
 
         def _color_signal(val):
-            return f"color: {SIGNAL_COLORS.get(val, '#888888')}"
+            return f"color: {SIGNAL_COLORS.get(val, TOKENS['text_secondary'])}"
 
         def _color_confidence(val):
-            return f"color: {CONFIDENCE_COLORS.get(val, '#888888')}"
+            return f"color: {CONFIDENCE_COLORS.get(val, TOKENS['text_secondary'])}"
 
         styled = (
             display_imbalance.style
@@ -778,26 +722,24 @@ with tabs[2]:
                 "Activity Momentum (%)": "{:+.1f}%",
                 "Valuation Momentum (%)": "{:+.1f}%",
                 "Recent Median EV/EBITDA": "{:.1f}x",
-            }, na_rep="N/A")
+            }, na_rep="n/a")
         )
         st.dataframe(styled, use_container_width=True)
-        st.caption(f"'n (recent deals)' = deal count in the most recent 2-year window. Signals with n < {MIN_SAMPLE} are classified as Insufficient Data.")
+        st.caption(f"'n (recent deals)' is the deal count in the most recent 2-year window. Signals with n < {MIN_SAMPLE} are classified as Insufficient Data.")
 
-        # Narrative
         narrative = imbalance_mod.imbalance_narrative(filters)
         if narrative:
-            st.markdown("#### Sector Signal Narrative")
-            st.markdown(f'<div class="snapshot-box" style="border-left-color: {SIGNAL_COLORS["Narrowing"]};">{narrative}</div>',
-                        unsafe_allow_html=True)
+            styled_section_label("SECTOR SIGNAL NARRATIVE")
+            styled_card(narrative, accent_color=SIGNAL_COLORS["Narrowing"])
     else:
-        st.info("Sector imbalance analysis requires 5+ years of data. Expand the date range to enable this analysis.")
+        st.info("Sector imbalance analysis requires at least 5 years of data. Expand the date range to enable this analysis.")
 
 
 # ===========================================================================
 # TAB 4: SPONSOR INTELLIGENCE
 # ===========================================================================
 with tabs[3]:
-    st.markdown("### Sponsor Intelligence")
+    styled_section_label("SPONSOR INTELLIGENCE")
     st.caption("PE sponsor rankings, sector preferences, and entry multiples.")
 
     rankings = sponsor_intel.sponsor_rankings(filters, top_n=15)
@@ -807,9 +749,9 @@ with tabs[3]:
     with col1:
         if not rankings.empty:
             fig = px.bar(rankings.sort_values("deal_count"), x="deal_count", y="sponsor_name",
-                         orientation="h", title="Top Sponsors by Deal Count",
-                         template=TEMPLATE, color_discrete_sequence=COLORS)
-            fig.update_layout(height=H, xaxis_title="Deals", yaxis_title="", **DARK_BG)
+                         orientation="h", title="Top Sponsors by Deal Count")
+            fig.update_layout(height=H, xaxis_title="Deal Count", yaxis_title="")
+            apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
 
     with col2:
@@ -817,12 +759,12 @@ with tabs[3]:
         if not top_value.empty:
             top_value["total_B"] = top_value["total_deal_value_usd"] / 1000
             fig = px.bar(top_value.sort_values("total_B"), x="total_B", y="sponsor_name",
-                         orientation="h", title="Top Sponsors by Total Deal Value ($B)",
-                         template=TEMPLATE, color_discrete_sequence=[COLORS[1]])
-            fig.update_layout(height=H, xaxis_title="Total Deal Value ($B)", yaxis_title="", **DARK_BG)
+                         orientation="h", title="Top Sponsors by Total Deal Value")
+            fig.update_layout(height=H, xaxis_title="Total Deal Value ($B)", yaxis_title="")
+            apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
 
-    # Sponsor sector heatmap
+    # Full-width sponsor sector heatmap
     sec_heat = sponsor_intel.sponsor_sector_heatmap(filters, top_n_sponsors=12)
     if not sec_heat.empty and "sponsor_name" in sec_heat.columns:
         sector_cols = [c for c in sec_heat.columns if c != "sponsor_name"]
@@ -831,20 +773,19 @@ with tabs[3]:
                 z=sec_heat[sector_cols].values,
                 x=sector_cols,
                 y=sec_heat["sponsor_name"].tolist(),
-                colorscale="Teal",
+                colorscale=[[0.0, TOKENS["bg_elevated"]], [1.0, TOKENS["accent_primary"]]],
             ))
             fig.update_layout(title="Sponsor Sector Preferences (Deal Count Heatmap)",
-                              template=TEMPLATE, height=H + 100,
-                              xaxis_tickangle=-30, **DARK_BG)
+                              height=H + 100, xaxis_tickangle=-30,
+                              xaxis_title="Sector", yaxis_title="Sponsor")
+            apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
 
     col3, col4 = st.columns(2)
 
     with col3:
-        # Entry multiples — only sponsors with >= MIN_SAMPLE deals with valid EV/EBITDA
         entry_df = sponsor_intel.sponsor_entry_multiples(filters, top_n=15)
         if not entry_df.empty:
-            # filter to sponsors with enough valuation data (ev_count column if present, else deal_count proxy)
             _ev_count_col = "ev_count" if "ev_count" in entry_df.columns else None
             if _ev_count_col:
                 _entry_incl = entry_df[entry_df[_ev_count_col] >= MIN_SAMPLE]
@@ -854,65 +795,61 @@ with tabs[3]:
                 _entry_excl = []
             if not _entry_incl.empty:
                 fig = px.bar(_entry_incl.sort_values("avg_ev_to_ebitda"), x="avg_ev_to_ebitda", y="sponsor_name",
-                             orientation="h", title="Average Entry EV/EBITDA by Sponsor",
-                             template=TEMPLATE, color_discrete_sequence=[COLORS[4]])
-                fig.update_layout(height=H, xaxis_title="Avg EV/EBITDA (x)", yaxis_title="", **DARK_BG)
+                             orientation="h", title="Average Entry EV/EBITDA by Sponsor")
+                fig.update_layout(height=H, xaxis_title="Avg EV/EBITDA (x)", yaxis_title="")
+                apply_plotly_theme(fig)
                 st.plotly_chart(fig, use_container_width=True)
                 if _entry_excl:
                     st.caption(f"Excluded (< {MIN_SAMPLE} deals with valid EV/EBITDA): {', '.join(_entry_excl)}.")
 
     with col4:
-        # Sponsor deal trend
         trend_df = sponsor_intel.sponsor_deal_trend(filters, top_n_sponsors=5)
         if not trend_df.empty:
             fig = px.line(trend_df, x="year", y="deal_count", color="sponsor_name",
-                          title="Top Sponsors: Annual Deal Count",
-                          template=TEMPLATE, color_discrete_sequence=COLORS)
-            fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Count", **DARK_BG)
+                          title="Top Sponsors | Annual Deal Count")
+            fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Count")
+            apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
 
-    # Rankings table — convert $M columns to $B for readability
     if not rankings.empty:
-        st.markdown("#### Sponsor Rankings Table")
-        rankings_display = rankings.copy()
-        if "total_deal_value_usd" in rankings_display.columns:
-            rankings_display["Total Value ($B)"] = rankings_display["total_deal_value_usd"] / 1000
-            rankings_display.drop(columns=["total_deal_value_usd"], inplace=True)
-        if "avg_deal_size_usd" in rankings_display.columns:
-            rankings_display["Avg Deal Size ($B)"] = rankings_display["avg_deal_size_usd"] / 1000
-            rankings_display.drop(columns=["avg_deal_size_usd"], inplace=True)
-        st.dataframe(rankings_display.style.format({
-            "Total Value ($B)": "${:.1f}B",
-            "Avg Deal Size ($B)": "${:.1f}B",
-            "avg_ev_to_ebitda": "{:.1f}x",
-        }), use_container_width=True)
+        with st.expander("Sponsor Rankings Table", expanded=False):
+            rankings_display = rankings.copy()
+            if "total_deal_value_usd" in rankings_display.columns:
+                rankings_display["Total Value ($B)"] = rankings_display["total_deal_value_usd"] / 1000
+                rankings_display.drop(columns=["total_deal_value_usd"], inplace=True)
+            if "avg_deal_size_usd" in rankings_display.columns:
+                rankings_display["Avg Deal Size ($B)"] = rankings_display["avg_deal_size_usd"] / 1000
+                rankings_display.drop(columns=["avg_deal_size_usd"], inplace=True)
+            st.dataframe(rankings_display.style.format({
+                "Total Value ($B)": "${:.1f}B",
+                "Avg Deal Size ($B)": "${:.1f}B",
+                "avg_ev_to_ebitda": "{:.1f}x",
+            }), use_container_width=True)
 
-    # --- Sponsor Profiles Section ---
-    st.markdown("---")
-    st.markdown("### Sponsor Behavioral Profiles")
-    st.caption("Valuation stance, sector concentration, and deal size profile for each sponsor with 3+ deals.")
+    # Sponsor Profiles Section
+    styled_divider()
+    styled_section_label("SPONSOR BEHAVIORAL PROFILES")
+    st.caption("Valuation stance, sector concentration, and deal size profile for each sponsor with 3 or more deals.")
 
     all_profiles_df = sponsor_profile_mod.generate_all_profiles(filters, min_deals=3)
 
     if not all_profiles_df.empty:
-        # Summary profiles table
         def _color_stance(val):
-            return f"color: {STANCE_COLORS.get(val, '#888888')}"
+            return f"color: {STANCE_COLORS.get(val, TOKENS['text_secondary'])}"
 
         display_profiles = all_profiles_df.copy()
         fmt_cols = {"avg_ev_ebitda": "{:.1f}x", "ev_premium_vs_market": "{:+.1f}x"}
         style_cols = ["valuation_stance"]
-        # Include ev_ebitda_count column if present
         st.dataframe(
             display_profiles.style
             .map(_color_stance, subset=style_cols)
-            .format(fmt_cols, na_rep="N/A"),
+            .format(fmt_cols, na_rep="n/a"),
             use_container_width=True,
         )
-        st.caption(f"Valuation stance requires ≥ {MIN_SAMPLE} deals with valid EV/EBITDA data. 'Insufficient valuation data' shown otherwise.")
+        st.caption(f"Valuation stance requires at least {MIN_SAMPLE} deals with valid EV/EBITDA. 'Insufficient valuation data' shown otherwise.")
 
-        # Drill-down: profile card for selected sponsor
-        st.markdown("#### Sponsor Profile Card")
+        # Drill-down profile card
+        styled_section_label("SPONSOR PROFILE CARD")
         eligible_sponsors = all_profiles_df["sponsor_name"].tolist()
         selected_sponsor = st.selectbox("Select a sponsor for detailed profile", eligible_sponsors)
 
@@ -920,54 +857,40 @@ with tabs[3]:
             profile = sponsor_profile_mod.generate_sponsor_profile(selected_sponsor, filters)
             if profile:
                 stance = profile.get("valuation_stance", "Unknown")
-                stance_color = STANCE_COLORS.get(stance, "#888888")
+                stance_color = STANCE_COLORS.get(stance, TOKENS["text_secondary"])
                 narrative = profile.get("narrative", "")
-                sectors = ", ".join(profile.get("preferred_sectors", [])[:3]) or "N/A"
+                sectors = ", ".join(profile.get("preferred_sectors", [])[:3]) or "n/a"
                 ev = profile.get("avg_ev_ebitda")
                 premium = profile.get("ev_premium_vs_market")
                 deal_size = profile.get("avg_deal_size_usd")
-                size_stance = profile.get("deal_size_stance", "N/A")
+                size_stance = profile.get("deal_size_stance", "n/a")
                 ev_cnt = profile.get("ev_ebitda_count", 0)
                 deal_cnt = profile.get("deal_count", 0)
 
                 cp1, cp2, cp3, cp4 = st.columns(4)
-                cp1.markdown(f"""<div class="metric-card">
-                    <div class="metric-value" style="color:{stance_color}; font-size:20px;">{stance}</div>
-                    <div class="metric-label">Valuation Stance</div>
-                </div>""", unsafe_allow_html=True)
-                cp2.markdown(f"""<div class="metric-card">
-                    <div class="metric-value">{f'{ev:.1f}x' if ev else 'N/A'}</div>
-                    <div class="metric-label">Avg Entry EV/EBITDA</div>
-                </div>""", unsafe_allow_html=True)
-                cp3.markdown(f"""<div class="metric-card">
-                    <div class="metric-value">{f'{premium:+.1f}x' if premium is not None else 'N/A'}</div>
-                    <div class="metric-label">vs Market Median</div>
-                </div>""", unsafe_allow_html=True)
-                cp4.markdown(f"""<div class="metric-card">
-                    <div class="metric-value">{f'${deal_size/1000:.1f}B' if deal_size else 'N/A'}</div>
-                    <div class="metric-label">Avg Deal Size</div>
-                </div>""", unsafe_allow_html=True)
+                with cp1: styled_kpi("STANCE", stance)
+                with cp2: styled_kpi("AVG ENTRY EV/EBITDA", f"{ev:.1f}x" if ev else "n/a")
+                with cp3: styled_kpi("VS MARKET", f"{premium:+.1f}x" if premium is not None else "n/a")
+                with cp4: styled_kpi("AVG DEAL SIZE", f"${deal_size/1000:.1f}B" if deal_size else "n/a")
 
-                # Confidence display for valuation stance
                 ev_badge = confidence_badge(ev_cnt)
                 stance_note = (
-                    f"Valuation classification based on {ev_cnt}/{deal_cnt} deals with valid EV/EBITDA data. "
+                    f"Valuation classification based on {ev_cnt} of {deal_cnt} deals with valid EV/EBITDA. "
                     + ev_badge
                 )
                 st.markdown(stance_note, unsafe_allow_html=True)
                 st.markdown(f"**Preferred Sectors:** {sectors} &nbsp;&nbsp; **Deal Size Profile:** {size_stance}",
                             unsafe_allow_html=True)
-                st.markdown(f'<div class="snapshot-box" style="border-left-color: {stance_color};">{narrative}</div>',
-                            unsafe_allow_html=True)
+                styled_card(narrative, accent_color=stance_color)
     else:
-        st.info("No sponsors with 3+ deals found under current filters.")
+        st.info("No sponsors with 3 or more deals found under current filters.")
 
 
 # ===========================================================================
 # TAB 5: DEAL EXPLORER
 # ===========================================================================
 with tabs[4]:
-    st.markdown("### Deal Explorer")
+    styled_section_label("DEAL EXPLORER")
     st.caption("Full filterable deal table. Synthetic records are labeled.")
 
     deals_df = _get_all_deals(_filter_key(filters))
@@ -998,7 +921,7 @@ with tabs[4]:
         # Highlight synthetic rows
         def highlight_synthetic(row):
             if row.get("Origin") == "synthetic":
-                return ["background-color: #1A120B"] * len(row)
+                return [f"background-color: {TOKENS['bg_elevated']}"] * len(row)
             return [""] * len(row)
 
         st.dataframe(
@@ -1006,13 +929,12 @@ with tabs[4]:
                 "Deal Value ($M)": "${:,.0f}M",
                 "EV/EBITDA": "{:.1f}x",
                 "Completeness": "{:.0f}%",
-            }, na_rep="N/A"),
+            }, na_rep="n/a"),
             use_container_width=True,
             height=500,
         )
 
-        # Deal detail expander
-        st.markdown("#### Deal Detail")
+        styled_section_label("DEAL DETAIL")
         deal_ids = deals_df["deal_id"].tolist()
         target_names = deals_df["target_name"].tolist()
         options = [f"{t} ({d[:8]}...)" for t, d in zip(target_names, deal_ids)]
@@ -1023,12 +945,12 @@ with tabs[4]:
             row = deals_df.iloc[selected_idx]
             is_synthetic = row.get("data_origin") == "synthetic"
             if is_synthetic:
-                st.warning(" SYNTHETIC RECORD: This deal is simulated and does not represent a real transaction.")
+                st.warning("SYNTHETIC RECORD. This deal is simulated and does not represent a real transaction.")
             with st.expander(f"Deal Detail: {row.get('target_name')}", expanded=True):
                 c1, c2, c3 = st.columns(3)
                 with c1:
                     st.markdown(f"**Target:** {row.get('target_name')}")
-                    st.markdown(f"**Acquirer:** {row.get('acquirer_name', 'N/A')}")
+                    st.markdown(f"**Acquirer:** {row.get('acquirer_name', 'n/a')}")
                     st.markdown(f"**Type:** {row.get('deal_type')}")
                     st.markdown(f"**Status:** {row.get('deal_status')}")
                 with c2:
@@ -1037,13 +959,12 @@ with tabs[4]:
                     st.markdown(f"**EV/Revenue:** {fmt_multiple(row.get('ev_to_revenue'))}")
                     st.markdown(f"**Premium Paid:** {fmt_pct(row.get('premium_paid_pct'))}")
                 with c3:
-                    st.markdown(f"**Sector:** {row.get('sector_name', 'N/A')}")
+                    st.markdown(f"**Sector:** {row.get('sector_name', 'n/a')}")
                     st.markdown(f"**Announced:** {row.get('announcement_date')}")
-                    st.markdown(f"**Closed:** {row.get('closing_date', 'N/A')}")
+                    st.markdown(f"**Closed:** {row.get('closing_date', 'n/a')}")
                     st.markdown(f"**Completeness:** {fmt_pct(row.get('completeness_score'))}")
 
-        # Export buttons
-        st.markdown("#### Export")
+        styled_section_label("EXPORT")
         col_a, col_b, _ = st.columns([1, 1, 4])
         with col_a:
             if st.button("Export CSV"):
@@ -1059,112 +980,42 @@ with tabs[4]:
 # TAB 6: DATA MANAGEMENT
 # ===========================================================================
 with tabs[5]:
-    st.markdown("### Data Management")
+    styled_section_label("DATA MANAGEMENT")
 
-    # System Architecture card
-    st.markdown("#### System Architecture")
-    _CARD = "background:#111; border:1px solid #00D4AA33; border-radius:6px; padding:14px; height:160px;"
-    _HDR = "font-size:11px; font-weight:700; color:#00D4AA; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;"
-    _LI = "font-size:12px; color:#BBB; line-height:1.7;"
+    # System Architecture
+    styled_section_label("SYSTEM ARCHITECTURE")
+    st.caption("Pipeline flow: Ingest | Validate | Score | Store | Analyze | Export.")
 
-    # Pipeline flow
-    st.markdown("""
-<div style="text-align:center; padding:10px 0; font-size:13px; color:#888; letter-spacing:2px;">
-  <span style="color:#00D4AA; font-weight:700;">INGEST</span>
-  &nbsp;→&nbsp;
-  <span style="color:#45B7D1; font-weight:700;">VALIDATE</span>
-  &nbsp;→&nbsp;
-  <span style="color:#F7DC6F; font-weight:700;">SCORE</span>
-  &nbsp;→&nbsp;
-  <span style="color:#BB8FCE; font-weight:700;">STORE</span>
-  &nbsp;→&nbsp;
-  <span style="color:#00D4AA; font-weight:700;">ANALYZE</span>
-  &nbsp;→&nbsp;
-  <span style="color:#F0B27A; font-weight:700;">EXPORT</span>
-</div>
-""", unsafe_allow_html=True)
+    arch_blocks = [
+        ("INGESTION",  "Real deal seed loader. Synthetic generator. CSV bulk import. Form-based entry."),
+        ("VALIDATION", "Required field checks. Type and range validation. Duplicate detection. Future-date guard."),
+        ("SCORING",    "Weighted completeness. Rule-based confidence. Quality tiers. Low-completeness cap."),
+        ("STORAGE",    "DuckDB columnar engine. 5 normalized tables. 2 analytical views. Single-file deployment."),
+        ("ANALYTICS",  "Valuation and activity trends. Regime and imbalance detection. Sponsor profiling. Relative valuation."),
+        ("EXPORT",     "Filtered CSV download. Formatted Excel multi-sheet. PDF report (phase 2). API connectors (future)."),
+    ]
+    arch_row1 = st.columns(3)
+    for col, (lbl, txt) in zip(arch_row1, arch_blocks[:3]):
+        with col:
+            styled_card(
+                f'<div style="font-size:0.65rem; color:{TOKENS["accent_primary"]}; text-transform:uppercase; letter-spacing:0.1em; font-weight:600; margin-bottom:0.4rem;">{lbl}</div>'
+                f'<div style="font-size:0.8rem; color:{TOKENS["text_secondary"]}; line-height:1.5;">{txt}</div>'
+            )
+    arch_row2 = st.columns(3)
+    for col, (lbl, txt) in zip(arch_row2, arch_blocks[3:]):
+        with col:
+            styled_card(
+                f'<div style="font-size:0.65rem; color:{TOKENS["accent_primary"]}; text-transform:uppercase; letter-spacing:0.1em; font-weight:600; margin-bottom:0.4rem;">{lbl}</div>'
+                f'<div style="font-size:0.8rem; color:{TOKENS["text_secondary"]}; line-height:1.5;">{txt}</div>'
+            )
 
-    arch1, arch2, arch3 = st.columns(3)
-    with arch1:
-        st.markdown(f"""
-<div style="{_CARD}">
-  <div style="{_HDR}">Ingestion</div>
-  <div style="{_LI}">
-    · Real deal seed loader<br>
-    · Synthetic deal generator<br>
-    · CSV bulk import<br>
-    · Form-based manual entry
-  </div>
-</div>""", unsafe_allow_html=True)
+    styled_divider()
 
-    with arch2:
-        st.markdown(f"""
-<div style="{_CARD}">
-  <div style="{_HDR}">Validation</div>
-  <div style="{_LI}">
-    · Required field checks<br>
-    · Type &amp; range validation<br>
-    · Duplicate detection<br>
-    · Future-date guard
-  </div>
-</div>""", unsafe_allow_html=True)
+    mgmt_tabs = st.tabs(["ADD DEAL", "BULK IMPORT", "COMPLETENESS", "ORIGIN"])
 
-    with arch3:
-        st.markdown(f"""
-<div style="{_CARD}">
-  <div style="{_HDR}">Scoring</div>
-  <div style="{_LI}">
-    · Weighted completeness<br>
-    · Rule-based confidence<br>
-    · Quality tier assignment<br>
-    · Low-completeness cap
-  </div>
-</div>""", unsafe_allow_html=True)
-
-    arch4, arch5, arch6 = st.columns(3)
-    with arch4:
-        st.markdown(f"""
-<div style="{_CARD}">
-  <div style="{_HDR}">Storage</div>
-  <div style="{_LI}">
-    · DuckDB columnar engine<br>
-    · 5 normalized tables<br>
-    · 2 analytical views<br>
-    · Single-file deployment
-  </div>
-</div>""", unsafe_allow_html=True)
-
-    with arch5:
-        st.markdown(f"""
-<div style="{_CARD}">
-  <div style="{_HDR}">Analytics</div>
-  <div style="{_LI}">
-    · Valuation &amp; activity trends<br>
-    · Regime &amp; imbalance detection<br>
-    · Sponsor profiling<br>
-    · Relative valuation
-  </div>
-</div>""", unsafe_allow_html=True)
-
-    with arch6:
-        st.markdown(f"""
-<div style="{_CARD}">
-  <div style="{_HDR}">Export</div>
-  <div style="{_LI}">
-    · Filtered CSV download<br>
-    · Formatted Excel (multi-sheet)<br>
-    · PDF report (Phase 2)<br>
-    · API connectors (future)
-  </div>
-</div>""", unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    mgmt_tabs = st.tabs(["Add Deal", "Bulk CSV Import", "Completeness Audit", "Data Origin Audit"])
-
-    # --- Add Deal Form ---
+    # Add Deal Form
     with mgmt_tabs[0]:
-        st.markdown("#### Add New Deal")
+        styled_section_label("ADD NEW DEAL")
         with st.form("add_deal_form"):
             tc1, tc2, tc3 = st.columns(3)
             with tc1:
@@ -1215,10 +1066,10 @@ with tabs[5]:
                     else:
                         st.error(f"Failed: {result['errors']}")
 
-    # --- Bulk CSV Import ---
+    # Bulk CSV Import
     with mgmt_tabs[1]:
-        st.markdown("#### Bulk CSV Import")
-        st.caption("Upload a CSV with deal records. Required columns: target_name, announcement_date, deal_type, deal_status, data_origin")
+        styled_section_label("BULK CSV IMPORT")
+        st.caption("Upload a CSV with deal records. Required columns: target_name, announcement_date, deal_type, deal_status, data_origin.")
         uploaded = st.file_uploader("Upload CSV", type=["csv"])
         if uploaded:
             import tempfile
@@ -1227,7 +1078,7 @@ with tabs[5]:
                 tmpfile = f.name
 
             preview = preview_csv(tmpfile, CONFIG)
-            st.markdown(f"**{preview['total_rows']} rows** | **{preview['valid_rows']} valid** | **{len(preview['invalid_rows'])} invalid** | **{len(preview['duplicate_warnings'])} duplicate warnings**")
+            st.markdown(f"**{preview['total_rows']} rows** | **{preview['valid_rows']} valid** | **{len(preview['invalid_rows'])} invalid** | **{len(preview['duplicate_warnings'])} duplicate warnings**.")
 
             if preview["invalid_rows"]:
                 st.warning("Invalid rows (will be skipped):")
@@ -1244,9 +1095,9 @@ with tabs[5]:
                 st.success(f"Inserted: {result['inserted']} | Skipped: {result['skipped']}")
                 import os; os.unlink(tmpfile)
 
-    # --- Completeness Audit ---
+    # Completeness Audit
     with mgmt_tabs[2]:
-        st.markdown("#### Completeness Audit")
+        styled_section_label("COMPLETENESS AUDIT")
 
         with st.expander("Scoring Methodology", expanded=False):
             st.markdown("""
@@ -1254,11 +1105,11 @@ with tabs[5]:
 
 Each deal is scored on a weighted scale based on field importance for M&A analysis:
 
-- **Tier 1 (weight 3.0)**: Deal identity: announcement date, acquirer, target, deal type, sector, deal value, status
-- **Tier 2 (weight 2.0)**: Analytical value: EV/EBITDA, EV/Revenue, premium paid, enterprise value, target EBITDA, target revenue, closing date, geography
-- **Tier 3 (weight 1.0)**: Secondary: financing structure, leverage, hostile/friendly, notes, source URL, sub-industry
+- **Tier 1 (weight 3.0)**: Deal identity. Announcement date, acquirer, target, deal type, sector, deal value, status.
+- **Tier 2 (weight 2.0)**: Analytical value. EV/EBITDA, EV/Revenue, premium paid, enterprise value, target EBITDA, target revenue, closing date, geography.
+- **Tier 3 (weight 1.0)**: Secondary. Financing structure, leverage, hostile/friendly, notes, source URL, sub-industry.
 
-**Quality tiers:** High (≥80%) · Medium (50-79%) · Low (<50%)
+**Quality tiers:** High (>= 80%) | Medium (50 to 79%) | Low (< 50%).
 
 **Confidence** is scored separately: based on data origin (real vs synthetic) and source verification.
 Low-completeness records (below 30%) are capped at 0.3 confidence regardless of source quality.
@@ -1271,10 +1122,9 @@ Low-quality records can be filtered out using the **Completeness Threshold** sli
             st.info("No data.")
         else:
             fig = px.histogram(comp_df, x="completeness_score", nbins=20,
-                               title="Completeness Score Distribution",
-                               template=TEMPLATE, color_discrete_sequence=COLORS)
-            fig.update_layout(height=350, xaxis_title="Completeness Score (%)", yaxis_title="Count",
-                              **DARK_BG)
+                               title="Completeness Score Distribution")
+            fig.update_layout(height=320, xaxis_title="Completeness Score (%)", yaxis_title="Deal Count")
+            apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
 
             low_q = comp_df[comp_df["completeness_score"] < 50]
@@ -1283,15 +1133,15 @@ Low-quality records can be filtered out using the **Completeness Threshold** sli
                 st.dataframe(low_q[["target_name", "data_origin", "completeness_score", "confidence_score"]]
                              .sort_values("completeness_score"), use_container_width=True)
 
-    # --- Data Origin Audit ---
+    # Data Origin Audit
     with mgmt_tabs[3]:
-        st.markdown("#### Data Origin Audit")
+        styled_section_label("DATA ORIGIN AUDIT")
         audit = queries.get_data_origin_audit()
         if not audit.empty:
             fig = px.pie(audit, names="data_origin", values="deal_count",
-                         title="Real vs. Synthetic Records",
-                         template=TEMPLATE, color_discrete_sequence=[COLORS[0], COLORS[1]], hole=0.4)
-            fig.update_layout(**DARK_BG)
+                         title="Real vs Synthetic Records", hole=0.65)
+            fig.update_layout(height=320)
+            apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
             st.dataframe(audit, use_container_width=True)
 
