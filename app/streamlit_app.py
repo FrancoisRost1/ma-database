@@ -332,7 +332,7 @@ with tabs[0]:
                 fig = px.line(cnt_df, x="year", y="deal_count", title="Deal Count Over Time")
                 fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Count")
                 apply_plotly_theme(fig)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
         with col2:
             dt_df = queries.get_deal_type_distribution(filters)
@@ -341,7 +341,7 @@ with tabs[0]:
                              title="Deal Type Distribution", hole=0.65)
                 fig.update_layout(height=H)
                 apply_plotly_theme(fig)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
         col3, col4 = st.columns(2)
 
@@ -352,7 +352,7 @@ with tabs[0]:
                              orientation="h", title="Top 10 Sectors by Deal Count")
                 fig.update_layout(height=H, xaxis_title="Deal Count", yaxis_title="")
                 apply_plotly_theme(fig)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
         with col4:
             acq_df = queries.get_deal_count_by_acquirer(filters, top_n=10)
@@ -362,7 +362,7 @@ with tabs[0]:
                              color="acquirer_type")
                 fig.update_layout(height=H, xaxis_title="Deal Count", yaxis_title="")
                 apply_plotly_theme(fig)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
         # Market Regime Section
         styled_section_label("MARKET REGIME")
@@ -383,7 +383,7 @@ with tabs[0]:
                 )
                 fig_regime.update_layout(height=380, legend_title="Regime")
                 apply_plotly_theme(fig_regime)
-                st.plotly_chart(fig_regime, use_container_width=True)
+                st.plotly_chart(fig_regime, width="stretch")
 
             with col_regime2:
                 if current_regime:
@@ -441,7 +441,7 @@ with tabs[1]:
             fig.update_layout(height=H, xaxis_title="Sector", yaxis_title="EV/EBITDA (x)",
                               xaxis_tickangle=-30)
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
             captions = []
             if _ev_excluded:
                 captions.append(f"Excluded (< {MIN_SAMPLE} obs): {', '.join(_ev_excluded)}.")
@@ -465,7 +465,7 @@ with tabs[1]:
                 fig.update_layout(height=H, xaxis_tickangle=-30, xaxis_title="Sector",
                                   yaxis_title="EV/Revenue (x)")
                 apply_plotly_theme(fig)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
                 if _rev_excluded:
                     st.caption(f"Excluded (< {MIN_SAMPLE} obs): {', '.join(_rev_excluded)}.")
 
@@ -477,7 +477,7 @@ with tabs[1]:
                                nbins=30)
             fig.update_layout(height=H, xaxis_title="Premium Paid (%)", yaxis_title="Deal Count")
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     regime_df = valuation.median_ev_ebitda_by_sector_year(filters)
     if not regime_df.empty:
@@ -485,7 +485,7 @@ with tabs[1]:
                       title="Median EV/EBITDA Over Time by Sector")
         fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Median EV/EBITDA (x)")
         apply_plotly_theme(fig)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     spvs = valuation.sponsor_vs_strategic_multiples(filters)
     if not spvs.empty:
@@ -494,14 +494,14 @@ with tabs[1]:
                      title="Sponsor vs Strategic Entry EV/EBITDA")
         fig.update_layout(height=320, xaxis_title="Acquirer Type", yaxis_title="EV/EBITDA (x)")
         apply_plotly_theme(fig)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     stats = valuation.sector_valuation_stats(filters)
     if not stats.empty:
         with st.expander("EV/EBITDA Summary Statistics by Sector", expanded=False):
             st.dataframe(stats.style.format({
                 "median": "{:.1f}x", "mean": "{:.1f}x", "p25": "{:.1f}x", "p75": "{:.1f}x"
-            }), use_container_width=True)
+            }), width="stretch")
 
     # Relative Valuation Section
     styled_divider()
@@ -530,7 +530,7 @@ with tabs[1]:
             fig_rel.update_layout(height=H, coloraxis_showscale=False,
                                   xaxis_title="vs Market Median (x)")
             apply_plotly_theme(fig_rel)
-            st.plotly_chart(fig_rel, use_container_width=True)
+            st.plotly_chart(fig_rel, width="stretch")
             st.caption(f"Only sectors with at least {MIN_SAMPLE} valid EV/EBITDA observations shown.")
 
         with col_rel2:
@@ -551,7 +551,7 @@ with tabs[1]:
                 fig_pct.update_layout(height=H, coloraxis_showscale=False,
                                       xaxis_title="Historical Percentile (0 to 100th)")
                 apply_plotly_theme(fig_pct)
-                st.plotly_chart(fig_pct, use_container_width=True)
+                st.plotly_chart(fig_pct, width="stretch")
                 st.caption(f"Only sectors with at least {MIN_SAMPLE} valid observations shown.")
 
         sv_df = rel_val_mod.sponsor_vs_strategic_premium(filters)
@@ -571,7 +571,7 @@ with tabs[1]:
             fig_sv.update_layout(height=H, coloraxis_showscale=False,
                                  xaxis_title="Spread (x)")
             apply_plotly_theme(fig_sv)
-            st.plotly_chart(fig_sv, use_container_width=True)
+            st.plotly_chart(fig_sv, width="stretch")
             st.caption(f"Only sectors where both sponsor and strategic have at least {MIN_SAMPLE} deals with valid EV/EBITDA.")
 
         narrative = rel_val_mod.relative_valuation_narrative(filters)
@@ -587,7 +587,7 @@ with tabs[1]:
                 "market_median": "{:.1f}x",
                 "premium_discount": "{:+.1f}x",
                 "historical_percentile": "{:.0f}th",
-            }, na_rep="n/a"), use_container_width=True)
+            }, na_rep="n/a"), width="stretch")
 
 
 # ===========================================================================
@@ -605,7 +605,7 @@ with tabs[2]:
             fig = px.area(cnt_df, x="year", y="deal_count", title="Annual Deal Count")
             fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Count")
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     with col2:
         val_df = market_activity.deal_value_over_time(filters)
@@ -614,7 +614,7 @@ with tabs[2]:
             fig = px.area(val_df, x="year", y="total_value_B", title="Annual Deal Value")
             fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Value ($B)")
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     # Full-width sector heatmap
     heatmap_df = market_activity.sector_activity_heatmap(filters)
@@ -632,7 +632,7 @@ with tabs[2]:
             fig.update_layout(title="Sector Activity Heatmap (Deal Count by Year)",
                               height=H + 100, xaxis_title="Year", yaxis_title="Sector")
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     col3, col4 = st.columns(2)
 
@@ -643,7 +643,7 @@ with tabs[2]:
                          barmode="stack", title="Sponsor vs Strategic Activity Over Time")
             fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Count")
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     with col4:
         status_df = market_activity.deal_status_breakdown(filters)
@@ -652,7 +652,7 @@ with tabs[2]:
                          barmode="stack", title="Deal Status Breakdown Over Time")
             fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Count")
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     tree_df = market_activity.sector_value_treemap(filters)
     if not tree_df.empty and "total_value_usd" in tree_df.columns:
@@ -661,7 +661,7 @@ with tabs[2]:
                              title="Deal Value by Sector ($M)")
             fig.update_layout(height=480)
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     # Market Signals Section
     styled_divider()
@@ -694,7 +694,7 @@ with tabs[2]:
             fig_scatter.add_vline(x=0, line_dash="dash", line_color=TOKENS["text_muted"], line_width=1)
             fig_scatter.update_layout(height=480)
             apply_plotly_theme(fig_scatter)
-            st.plotly_chart(fig_scatter, use_container_width=True)
+            st.plotly_chart(fig_scatter, width="stretch")
 
         # Signal table, add n (recent deal count) and confidence qualifier
         from ma.analytics.imbalance import signal_confidence as _sig_conf
@@ -724,7 +724,7 @@ with tabs[2]:
                 "Recent Median EV/EBITDA": "{:.1f}x",
             }, na_rep="n/a")
         )
-        st.dataframe(styled, use_container_width=True)
+        st.dataframe(styled, width="stretch")
         st.caption(f"'n (recent deals)' is the deal count in the most recent 2-year window. Signals with n < {MIN_SAMPLE} are classified as Insufficient Data.")
 
         narrative = imbalance_mod.imbalance_narrative(filters)
@@ -752,7 +752,7 @@ with tabs[3]:
                          orientation="h", title="Top Sponsors by Deal Count")
             fig.update_layout(height=H, xaxis_title="Deal Count", yaxis_title="")
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     with col2:
         top_value = sponsor_intel.top_sponsors_by_value(filters, top_n=15)
@@ -762,7 +762,7 @@ with tabs[3]:
                          orientation="h", title="Top Sponsors by Total Deal Value")
             fig.update_layout(height=H, xaxis_title="Total Deal Value ($B)", yaxis_title="")
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     # Full-width sponsor sector heatmap
     sec_heat = sponsor_intel.sponsor_sector_heatmap(filters, top_n_sponsors=12)
@@ -779,7 +779,7 @@ with tabs[3]:
                               height=H + 100, xaxis_tickangle=-30,
                               xaxis_title="Sector", yaxis_title="Sponsor")
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     col3, col4 = st.columns(2)
 
@@ -798,7 +798,7 @@ with tabs[3]:
                              orientation="h", title="Average Entry EV/EBITDA by Sponsor")
                 fig.update_layout(height=H, xaxis_title="Avg EV/EBITDA (x)", yaxis_title="")
                 apply_plotly_theme(fig)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
                 if _entry_excl:
                     st.caption(f"Excluded (< {MIN_SAMPLE} deals with valid EV/EBITDA): {', '.join(_entry_excl)}.")
 
@@ -809,7 +809,7 @@ with tabs[3]:
                           title="Top Sponsors | Annual Deal Count")
             fig.update_layout(height=H, xaxis_title="Year", yaxis_title="Deal Count")
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     if not rankings.empty:
         with st.expander("Sponsor Rankings Table", expanded=False):
@@ -824,7 +824,7 @@ with tabs[3]:
                 "Total Value ($B)": "${:.1f}B",
                 "Avg Deal Size ($B)": "${:.1f}B",
                 "avg_ev_to_ebitda": "{:.1f}x",
-            }), use_container_width=True)
+            }), width="stretch")
 
     # Sponsor Profiles Section
     styled_divider()
@@ -844,7 +844,7 @@ with tabs[3]:
             display_profiles.style
             .map(_color_stance, subset=style_cols)
             .format(fmt_cols, na_rep="n/a"),
-            use_container_width=True,
+            width="stretch",
         )
         st.caption(f"Valuation stance requires at least {MIN_SAMPLE} deals with valid EV/EBITDA. 'Insufficient valuation data' shown otherwise.")
 
@@ -930,7 +930,7 @@ with tabs[4]:
                 "EV/EBITDA": "{:.1f}x",
                 "Completeness": "{:.0f}%",
             }, na_rep="n/a"),
-            use_container_width=True,
+            width="stretch",
             height=500,
         )
 
@@ -1088,7 +1088,7 @@ with tabs[5]:
                 st.warning(f"{len(preview['duplicate_warnings'])} possible duplicate(s) detected.")
 
             st.markdown("**Preview (first 20 rows):**")
-            st.dataframe(preview["preview_df"], use_container_width=True)
+            st.dataframe(preview["preview_df"], width="stretch")
 
             if st.button("Import (skip invalid rows)"):
                 result = import_csv(tmpfile, CONFIG, skip_invalid=True)
@@ -1125,13 +1125,13 @@ Low-quality records can be filtered out using the **Completeness Threshold** sli
                                title="Completeness Score Distribution")
             fig.update_layout(height=320, xaxis_title="Completeness Score (%)", yaxis_title="Deal Count")
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
             low_q = comp_df[comp_df["completeness_score"] < 50]
             st.markdown(f"**{len(low_q)} low-quality deals** (completeness < 50%):")
             if not low_q.empty:
                 st.dataframe(low_q[["target_name", "data_origin", "completeness_score", "confidence_score"]]
-                             .sort_values("completeness_score"), use_container_width=True)
+                             .sort_values("completeness_score"), width="stretch")
 
     # Data Origin Audit
     with mgmt_tabs[3]:
@@ -1142,10 +1142,10 @@ Low-quality records can be filtered out using the **Completeness Threshold** sli
                          title="Real vs Synthetic Records", hole=0.65)
             fig.update_layout(height=320)
             apply_plotly_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
-            st.dataframe(audit, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
+            st.dataframe(audit, width="stretch")
 
         missing_src = queries.get_missing_source_deals()
         if not missing_src.empty:
             st.markdown(f"**{len(missing_src)} real deals missing source URLs:**")
-            st.dataframe(missing_src, use_container_width=True)
+            st.dataframe(missing_src, width="stretch")
